@@ -10,7 +10,7 @@
 
 using namespace std;
 
-#define PORT "58000" // mudar para 58000 + nº grupo
+#define PORT "58044"
 #define IP "127.0.0.0" 
 
 int fd, errcode;
@@ -27,7 +27,7 @@ enum Command_Options {
     logout,
     exit_user,
     create,
-    close,
+    close_reservation,
     myevents,
     list, 
     show, 
@@ -43,7 +43,7 @@ Command_Options resolveCommand(string command) {
     if( command == "logout" ) return logout;
     if( command == "exit" ) return exit_user;
     if( command == "create" ) return create;
-    if( command == "close" ) return close;
+    if( command == "close" ) return close_reservation;
     if( command == "myevents" or command == "mye" ) return myevents;
     if( command == "list" ) return list;
     if( command == "show" ) return show;
@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
                 break;
             }
             
-            case close: {
+            case close_reservation: {
                 /* code */
                 break;
             }
