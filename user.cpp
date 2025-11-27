@@ -22,7 +22,7 @@ ssize_t msg;
 socklen_t addrlen;
 struct addrinfo hints, *res;
 struct sockaddr_in addr;
-string port, ip_address;
+char port[MAX_STRING], ip_address[MAX_STRING];
 
 enum Command_Options {
     login,
@@ -31,7 +31,7 @@ enum Command_Options {
     logout,
     exit_user,
     create,
-    close_reservation,
+    close_event,
     myevents,
     list, 
     show, 
@@ -40,6 +40,12 @@ enum Command_Options {
     invalid_command
 };
 
+/**
+ * Identify what command the user has just sent
+ * 
+ * @param command
+ * @return enum value 
+ */
 Command_Options resolveCommand(string command) {
     if( command == "login" ) return login;
     if( command == "changePass" ) return changePass;
@@ -47,7 +53,7 @@ Command_Options resolveCommand(string command) {
     if( command == "logout" ) return logout;
     if( command == "exit" ) return exit_user;
     if( command == "create" ) return create;
-    if( command == "close" ) return close_reservation;
+    if( command == "close" ) return close_event;
     if( command == "myevents" or command == "mye" ) return myevents;
     if( command == "list" ) return list;
     if( command == "show" ) return show;
@@ -57,8 +63,13 @@ Command_Options resolveCommand(string command) {
     return invalid_command;
 }
 
-vector<string> splitString(string& input)
-{
+/**
+ * Splits given string into a vector, using ' ' as a delimiter.
+ * 
+ * @param input
+ * @return tokens
+ */
+vector<string> splitString(string& input) {
     istringstream stream(input);
     vector<string> tokens;
     string token;
@@ -70,7 +81,16 @@ vector<string> splitString(string& input)
     return tokens;
 }
 
-string connect_UDP(string ip_address, string port, string msg) {
+/**
+ * Connection with UPD server.
+ * 
+ * @param ip_address, port, msg
+ * @return response
+ */
+string connect_UDP(char* ip_address, char* port, string msg) {
+    int msg_len = msg.length();
+    char buffer[MAX_STRING];
+
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
         cout << "Erro a criar socket.\n";
@@ -81,13 +101,11 @@ string connect_UDP(string ip_address, string port, string msg) {
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
 
-    errcode = getaddrinfo(ip_address.c_str(), port.c_str(), &hints, &res);
+    errcode = getaddrinfo(ip_address, port, &hints, &res);
     if (errcode != 0) {
         cout << "Erro a estabelecer conexão UDP.\n";
         exit(1);
     }
-
-    int msg_len = msg.length();
 
     ssize_t sent = sendto(fd, msg.c_str(), msg_len, 0, res->ai_addr, res->ai_addrlen);
     if (sent == -1) {
@@ -95,7 +113,6 @@ string connect_UDP(string ip_address, string port, string msg) {
         exit(-1);
     }
 
-    char buffer[MAX_STRING];
     addrlen = sizeof(addr);
     sent = recvfrom(fd, buffer, MAX_STRING, 0, 
                    (struct sockaddr*) &addr, &addrlen);
@@ -113,20 +130,77 @@ string connect_UDP(string ip_address, string port, string msg) {
     return response;
 }
 
+/**
+ * Connection with TCP server.
+ * 
+ * @param ip_address, port, msg
+ * @return response
+ */
+string connect_TCP(char* ip_address, char* port, string msg) {
+    int msg_len = msg.length();
+    char buffer[MAX_STRING];
+
+    fd = socket (AF_INET, SOCK_STREAM, 0);
+    if(fd == -1) {
+        cout << "Erro a criar socket.\n";
+        exit(1);
+    } 
+
+    memset(&hints,0, sizeof hints);
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
+
+    errcode = getaddrinfo(ip_address, port, &hints, &res);
+    if (errcode != 0) {
+        cout << "Erro a estabelecer conexão TCP.\n";
+        exit(1);
+    }
+
+    ssize_t sent = connect(fd, res->ai_addr, res->ai_addrlen);
+    if (sent == -1) {
+        cout << "Erro a tentar conectar com servidor TCP.\n";
+        exit(1);
+    }
+
+    sent = write(fd, msg.c_str(), msg_len);
+    if (sent == -1) {
+        cout << "Erro a enviar mensagem para servidor TCP.\n";
+        exit(1);
+    }
+
+    sent = read(fd, buffer, MAX_STRING);
+    if (sent == -1) {
+        cout << "Erro a receber mensagem do servidor TCP.\n";
+        exit(1);
+    }
+
+    write(1, buffer, sent);  // só para testar
+    string response = buffer;
+
+    freeaddrinfo(res);
+    close(fd);
+
+    return response;
+}
+
 int main(int argc, char** argv) {
     bool exit_program = false, logged_in = false;
     string input, command, response, msg;
+    string curr_user = "", curr_pass = "";
 
     // Use default values for IP address and port
     if (argc == 1) {
-        ip_address = IP;
-        port = PORT;
+        strcpy(ip_address, IP);
+        strcpy(port, PORT);
     }
     // Use IP and port values given by user
     else {
-        ip_address = argv[1];
-        port = argv[2];
-    }        
+        strcpy(ip_address, argv[1]);
+        strcpy(port, argv[2]);
+    }   
+    
+    cout << "Bem vindo à nossa plataforma de reserva de eventos!\n";
 
     while(!exit_program) {
         // Read input from user and extract first word 
@@ -137,16 +211,25 @@ int main(int argc, char** argv) {
 
         switch (resolveCommand(command))
         {
+            /**
+             * Login command.
+             * OK - successful login
+             * REG - register new user
+             * NOK - password doesn't match UID
+             */
             case login: {
-                if (tokens.size() == 1) {
+                if (tokens.size() != 3) {
                     cout << "Por favor introduza o seu username e password.\n";
                     break;
                 }
-
+                
+                // Establish UDP connection
                 msg = "LIN" + ' ' + tokens[1] + ' ' + tokens[2] + '\n';
                 response = connect_UDP(ip_address, port, msg);
+
                 string status = splitString(response)[1];
 
+                // Possible status outcomes
                 if (status == "REG") {
                     cout << "Conta criada com sucesso.\n";
                     logged_in = true;
@@ -156,28 +239,140 @@ int main(int argc, char** argv) {
                     cout << "Username ou password incorretos.\n";
                     break;
                 }
+
                 cout << "Login efetuado com sucesso.\n";
+                curr_user = tokens[1];
+                curr_pass = tokens[2];
                 logged_in = true;
                 break;
             }
             
+            /**
+             * changePass command.
+             * OK - password changed successfully
+             * NLG - user not logged in
+             * NOK - old password doesn't match UID's current password
+             * NID - UID doesn't exist
+             */
             case changePass: {
-                /* code */
+                if (tokens.size() != 3) {
+                    cout << "Por favor introduza a password antiga e a password nova.\n";
+                    break;
+                }
+                
+                // Establish TCP connection
+                msg = "CPS" + ' ' + curr_user + tokens[1] + ' ' + tokens[2] + '\n';
+                response = connect_TCP(ip_address, port, msg);
+
+                string status = splitString(response)[1];
+
+                // Possible status outcomes
+                if (status == "NLG") {
+                    cout << "Por favor faça login primeiro.\n";
+                    logged_in = true;
+                    break;
+                }
+                else if (status == "NOK") {
+                    cout << "Password dada não corresponde à password atual.\n";
+                    break;
+                }
+                else if (status == "NID") {
+                    cout << "Username fornecido não existe.\n";
+                    break;
+                }
+
+                cout << "Password alterada com sucesso.\n";
+                curr_pass = tokens[2];
                 break;
             }
             
+            /**
+             * Unregister command.
+             * OK - unregistered successfully
+             * UNR - user was not registered
+             * NOK - user was not logged in
+             * WRP - incorrect password
+             */
             case unregister: {
-                /* code */
+                if (tokens.size() != 1) {
+                    cout << "Apenas introduza o comando 'unregister'.\n";
+                    break;
+                }
+                
+                // Establish UDP connection
+                msg = "UNR" + ' ' + curr_user + ' ' + curr_pass + '\n';
+                response = connect_UDP(ip_address, port, msg);
+
+                string status = splitString(response)[1];
+
+                // Possible status outcomes
+                if (status == "UNR") {
+                    cout << "Não pode remover o registo de uma conta não registada.\n";
+                    logged_in = true;
+                    break;
+                }
+                else if (status == "NOK") {
+                    cout << "Não pode remover o registo de uma conta que não se encontra ativa.\n";
+                    break;
+                }
+                else if (status == "WRP") {
+                    cout << "Password incorreta.\n";
+                    break;
+                }
+
+                // REMOVER PASTA DO USER!!!!!
+                cout << "Unregister efetuado com sucesso.\n";
+                curr_user = "";
+                curr_pass = "";
                 logged_in = false;
                 break;
             }
             
+            /**
+             * Logout command.
+             * OK - logged out successfully
+             * UNR - user was not registered
+             * NOK - user was not logged in
+             * WRP - incorrect password
+             */
             case logout: {
-                /* code */
+                if (tokens.size() != 1) {
+                    cout << "Apenas introduza o comando 'logout'.\n";
+                    break;
+                }
+
+                // Establish UDP connection
+                msg = "LOU" + ' ' + curr_user + ' ' + curr_pass + '\n';
+                response = connect_UDP(ip_address, port, msg);
+
+                string status = splitString(response)[1];
+
+                // Possible status outcomes
+                if (status == "UNR") {
+                    cout << "Não pode fazer logout de uma conta não registada.\n";
+                    logged_in = true;
+                    break;
+                }
+                else if (status == "NOK") {
+                    cout << "Não pode fazer logout de uma conta que não se encontra ativa.\n";
+                    break;
+                }
+                else if (status == "WRP") {
+                    cout << "Password incorreta.\n";
+                    break;
+                }
+
+                cout << "Logout efetuado com sucesso.\n";
+                curr_user = "";
+                curr_pass = "";
+
                 logged_in = false;
                 break;
             }
             
+            /**
+             * Exit command.
+             */
             case exit_user: {
                 if (logged_in) 
                     cout << "Please log out of your account before exiting.";
@@ -185,42 +380,236 @@ int main(int argc, char** argv) {
                 break;
             }
             
+            /**
+             * Create command.
+             * OK - event created successfully
+             * NOK - event could not be created
+             * NLG - user was not logged in
+             * WRP - incorrect password
+             */
             case create: {
                 /* code */
                 break;
             }
             
-            case close_reservation: {
-                /* code */
+            /**
+             * Close command.
+             * OK - event closed successfully
+             * NOK - user does not exist or password is incorrect
+             * NLG - user was not logged in
+             * NOE - event does not exist
+             * EOW -  event was not created by current user
+             * SLD - event is sold out
+             * PST - event has already happened
+             * CLO - event has already been closed
+             */
+            case close_event: {
+                if (tokens.size() != 2) {
+                    cout << "Por favor indique o evento que pretende fechar.\n";
+                    break;
+                }
+
+                // Establish TCP connection
+                msg = "CLS" + ' ' + curr_user + ' ' + curr_pass + ' ' + tokens[1] +'\n';
+                response = connect_TCP(ip_address, port, msg);
+
+                string status = splitString(response)[1];
+
+                // Possible status outcomes
+                if (status == "NOK") {
+                    cout << "Utilizador não existe ou a password está incorreta.\n";
+                    logged_in = true;
+                    break;
+                }
+                else if (status == "NLG") {
+                    cout << "Por favor faça login primeiro.\n";
+                    break;
+                }
+                else if (status == "NOE") {
+                    cout << "Evento não existe.\n";
+                    break;
+                }
+                else if (status == "EOW") {
+                    cout << "Evento não foi criado pelo utilizador.\n";
+                    break;
+                }
+                else if (status == "SLD") {
+                    cout << "Evento esgotado.\n";
+                    break;
+                }
+                else if (status == "PST") {
+                    cout << "Evento já aconteceu.\n";
+                    break;
+                }
+                else if (status == "CLO") {
+                    cout << "Evento já se encontrava fechado.\n";
+                    break;
+                }
+
+                cout << "Evento fechado com sucesso.\n";
+
                 break;
             }
             
+            /**
+             * myevents command.
+             * OK - event created successfully
+             * NOK - user has not created any events
+             * NLG - user was not logged in
+             * WRP - incorrect password
+             */
             case myevents: {
-                /* code */
+                if (tokens.size() != 1) {
+                    cout << "Apenas introduza o comando 'myevents' ou 'mye'.\n";
+                    break;
+                }
+                
+                // Establish UDP connection
+                msg = "LME" + ' ' + curr_user + ' ' + curr_pass + '\n';
+                response = connect_UDP(ip_address, port, msg);
+
+                string status = splitString(response)[1];
+
+                // Possible status outcomes
+                if (status == "NLG") {
+                    cout << "Por favor faça login primeiro.\n";
+                    logged_in = true;
+                    break;
+                }
+                else if (status == "WRP") {
+                    cout << "Password incorreta.\n";
+                    break;
+                }
+
+                cout << response + "\n"; // Manter assim por enquanto, depois separar eventos melhor
+
                 break;
             }
             
+            /**
+             * list command.
+             * OK - events listed successfully
+             * NOK - no events have been created yet
+             */
             case list: {
                 /* code */
                 break;
             }
             
+            /**
+             * show command.
+             * OK - event shown successfully
+             * NOK - event does not exist, file could not be sent, others
+             */
             case show: {
                 /* code */
                 break;
             }
             
+            /**
+             * reserve command.
+             * ACC - reservation done successfully
+             * NOK - event is not active
+             * NLG - user was not logged in
+             * WRP - incorrect password
+             * REJ - number of tickets is higher than available seats
+             * CLS - event is closed
+             * SLD - event was sold out
+             * PST - event has already happened
+             */
             case reserve: {
-                /* code */
+                if (tokens.size() != 3) {
+                    cout << "Por favor indique o evento e o número de lugares que pretende reservar.\n";
+                    break;
+                }
+
+                // Establish TCP connection
+                msg = "RID" + ' ' + curr_user + ' ' + curr_pass + ' ' + tokens[1] + ' ' + tokens[2] + '\n';
+                response = connect_TCP(ip_address, port, msg);
+
+                string status = splitString(response)[1];
+
+                // Possible status outcomes
+                if (status == "NOK") {
+                    cout << "Utilizador não existe ou a password está incorreta.\n";
+                    logged_in = true;
+                    break;
+                }
+                else if (status == "NLG") {
+                    cout << "Por favor faça login primeiro.\n";
+                    break;
+                }
+                else if (status == "NOE") {
+                    cout << "Evento não existe.\n";
+                    break;
+                }
+                else if (status == "EOW") {
+                    cout << "Evento não foi criado pelo utilizador.\n";
+                    break;
+                }
+                else if (status == "SLD") {
+                    cout << "Evento esgotado.\n";
+                    break;
+                }
+                else if (status == "PST") {
+                    cout << "Evento já aconteceu.\n";
+                    break;
+                }
+                else if (status == "CLO") {
+                    cout << "Evento já se encontrava fechado.\n";
+                    break;
+                }
+
+                cout << "Evento fechado com sucesso.\n";
+
+                break;
                 break;
             }
             
+            /**
+             * myreservations command.
+             * OK - reservations shown successfully
+             * NOK - user has not made any reservations
+             * NLG - user was not logged in
+             * WRP - incorrect password
+             */
             case myreservations: {
-                /* code */
+                if (tokens.size() != 1) {
+                    cout << "Apenas introduza o comando 'myreservations'.\n";
+                    break;
+                }
+                
+                // Establish UDP connection
+                msg = "LME" + ' ' + curr_user + ' ' + curr_pass + '\n';
+                response = connect_UDP(ip_address, port, msg);
+
+                string status = splitString(response)[1];
+
+                // Possible status outcomes
+                if (status == "NLG") {
+                    cout << "Por favor faça login primeiro.\n";
+                    logged_in    = true;
+                    break;
+                }
+                else if (status == "WRP") {
+                    cout << "Password incorreta.\n";
+                    break;
+                }
+                else if (status == "NOK") {
+                    cout << "Ainda não efetou nenhuma reserva.\n";
+                    break;
+                }
+
+                cout << response + "\n"; // Manter assim por enquanto, depois separar eventos melhor
+
                 break;
             }
             
+            /**
+             * Invalid commands.
+             */
             default:
+                cout << "Apenas são autorizados comandos válidos.\n";
                 break;
         }
     }
