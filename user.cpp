@@ -41,7 +41,7 @@ enum Command_Options {
 };
 
 /**
- * Identify what command the user has just sent
+ * Identify what command the user has just sent.
  * 
  * @param command
  * @return enum value 
@@ -64,7 +64,7 @@ Command_Options resolveCommand(string command) {
 }
 
 /**
- * Splits given string into a vector, using ' ' as a delimiter.
+ * Splits given string into a vector, using " " as a delimiter.
  * 
  * @param input
  * @return tokens
@@ -121,7 +121,11 @@ string connect_UDP(char* ip_address, char* port, string msg) {
         exit(-1);
     }
 
-    write(1, buffer, sent);  // só para testar
+    sent = write(1, buffer, sent);  // só para testar
+    if (sent == -1) {
+        cout << "Erro a escrever mensagem para servidor UDP.\n";
+        exit(-1);
+    }
     string response = buffer;
 
     freeaddrinfo(res);
@@ -175,7 +179,11 @@ string connect_TCP(char* ip_address, char* port, string msg) {
         exit(1);
     }
 
-    write(1, buffer, sent);  // só para testar
+    sent = write(1, buffer, sent);  // só para testar
+    if (sent == -1) {
+        cout << "Erro a escrever mensagem para servidor UDP.\n";
+        exit(-1);
+    }
     string response = buffer;
 
     freeaddrinfo(res);
@@ -227,7 +235,7 @@ int main(int argc, char** argv) {
                 }
                 
                 // Establish UDP connection
-                msg = "LIN" + ' ' + tokens[1] + ' ' + tokens[2] + '\n';
+                msg = "LIN " + tokens[1] + " " + tokens[2] + "\n";
                 response = connect_UDP(ip_address, port, msg);
 
                 string status = splitString(response)[1];
@@ -267,7 +275,7 @@ int main(int argc, char** argv) {
                 }
                 
                 // Establish TCP connection
-                msg = "CPS" + ' ' + curr_user + tokens[1] + ' ' + tokens[2] + '\n';
+                msg = "CPS " + curr_user + tokens[1] + " " + tokens[2] + '\n';
                 response = connect_TCP(ip_address, port, msg);
 
                 string status = splitString(response)[1];
@@ -309,7 +317,7 @@ int main(int argc, char** argv) {
                 }
                 
                 // Establish UDP connection
-                msg = "UNR" + ' ' + curr_user + ' ' + curr_pass + '\n';
+                msg = "UNR " + curr_user + " " + curr_pass + '\n';
                 response = connect_UDP(ip_address, port, msg);
 
                 string status = splitString(response)[1];
@@ -354,7 +362,7 @@ int main(int argc, char** argv) {
                 }
 
                 // Establish UDP connection
-                msg = "LOU" + ' ' + curr_user + ' ' + curr_pass + '\n';
+                msg = "LOU " + curr_user + " " + curr_pass + '\n';
                 response = connect_UDP(ip_address, port, msg);
 
                 string status = splitString(response)[1];
@@ -422,7 +430,7 @@ int main(int argc, char** argv) {
                 }
 
                 // Establish TCP connection
-                msg = "CLS" + ' ' + curr_user + ' ' + curr_pass + ' ' + tokens[1] +'\n';
+                msg = "CLS " + curr_user + " " + curr_pass + " " + tokens[1] +'\n';
                 response = connect_TCP(ip_address, port, msg);
 
                 string status = splitString(response)[1];
@@ -477,7 +485,7 @@ int main(int argc, char** argv) {
                 }
                 
                 // Establish UDP connection
-                msg = "LME" + ' ' + curr_user + ' ' + curr_pass + '\n';
+                msg = "LME " + curr_user + " " + curr_pass + '\n';
                 response = connect_UDP(ip_address, port, msg);
 
                 string status = splitString(response)[1];
@@ -536,7 +544,7 @@ int main(int argc, char** argv) {
                 }
 
                 // Establish TCP connection
-                msg = "RID" + ' ' + curr_user + ' ' + curr_pass + ' ' + tokens[1] + ' ' + tokens[2] + '\n';
+                msg = "RID " + curr_user + " " + curr_pass + " " + tokens[1] + " " + tokens[2] + '\n';
                 response = connect_TCP(ip_address, port, msg);
 
                 string status = splitString(response)[1];
@@ -592,7 +600,7 @@ int main(int argc, char** argv) {
                 }
                 
                 // Establish UDP connection
-                msg = "LME" + ' ' + curr_user + ' ' + curr_pass + '\n';
+                msg = "LME " + curr_user + " " + curr_pass + '\n';
                 response = connect_UDP(ip_address, port, msg);
 
                 string status = splitString(response)[1];
