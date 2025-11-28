@@ -195,7 +195,7 @@ string connect_TCP(char* ip_address, char* port, string msg) {
 int main(int argc, char** argv) {
     bool exit_program = false, logged_in = false;
     string input, command, response, msg;
-    string curr_user = "", curr_pass = "";
+    string curr_user = "", curr_pass = "", status;
 
     // Use default values for IP address and port
     if (argc == 1) {
@@ -238,7 +238,7 @@ int main(int argc, char** argv) {
                 msg = "LIN " + tokens[1] + " " + tokens[2] + "\n";
                 response = connect_UDP(ip_address, port, msg);
 
-                string status = splitString(response)[1];
+                status = splitString(response)[1];
 
                 // Possible status outcomes
                 if (status == "REG") {
@@ -278,7 +278,7 @@ int main(int argc, char** argv) {
                 msg = "CPS " + curr_user + tokens[1] + " " + tokens[2] + '\n';
                 response = connect_TCP(ip_address, port, msg);
 
-                string status = splitString(response)[1];
+                status = splitString(response)[1];
 
                 // Possible status outcomes
                 if (status == "NLG") {
@@ -320,7 +320,7 @@ int main(int argc, char** argv) {
                 msg = "UNR " + curr_user + " " + curr_pass + '\n';
                 response = connect_UDP(ip_address, port, msg);
 
-                string status = splitString(response)[1];
+                status = splitString(response)[1];
 
                 // Possible status outcomes
                 if (status == "UNR") {
@@ -365,7 +365,7 @@ int main(int argc, char** argv) {
                 msg = "LOU " + curr_user + " " + curr_pass + '\n';
                 response = connect_UDP(ip_address, port, msg);
 
-                string status = splitString(response)[1];
+                status = splitString(response)[1];
 
                 // Possible status outcomes
                 if (status == "UNR") {
@@ -433,7 +433,7 @@ int main(int argc, char** argv) {
                 msg = "CLS " + curr_user + " " + curr_pass + " " + tokens[1] +'\n';
                 response = connect_TCP(ip_address, port, msg);
 
-                string status = splitString(response)[1];
+                status = splitString(response)[1];
 
                 // Possible status outcomes
                 if (status == "NOK") {
@@ -488,7 +488,7 @@ int main(int argc, char** argv) {
                 msg = "LME " + curr_user + " " + curr_pass + '\n';
                 response = connect_UDP(ip_address, port, msg);
 
-                string status = splitString(response)[1];
+                status = splitString(response)[1];
 
                 // Possible status outcomes
                 if (status == "NLG") {
@@ -547,7 +547,7 @@ int main(int argc, char** argv) {
                 msg = "RID " + curr_user + " " + curr_pass + " " + tokens[1] + " " + tokens[2] + '\n';
                 response = connect_TCP(ip_address, port, msg);
 
-                string status = splitString(response)[1];
+                status = splitString(response)[1];
 
                 // Possible status outcomes
                 if (status == "NOK") {
@@ -603,7 +603,7 @@ int main(int argc, char** argv) {
                 msg = "LME " + curr_user + " " + curr_pass + '\n';
                 response = connect_UDP(ip_address, port, msg);
 
-                string status = splitString(response)[1];
+                status = splitString(response)[1];
 
                 // Possible status outcomes
                 if (status == "NLG") {
