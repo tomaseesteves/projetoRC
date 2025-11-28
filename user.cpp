@@ -15,7 +15,7 @@ using namespace std;
 
 #define PORT "58044"
 #define IP "127.0.0.0" 
-#define MAX_STRING 128
+#define MAX_STRING 1024
 
 int fd, errcode;
 ssize_t msg;
@@ -212,7 +212,10 @@ int main(int argc, char** argv) {
         switch (resolveCommand(command))
         {
             /**
-             * Login command.
+             * Command: login UID password
+             * Client message: LIN UID passwors
+             * UDP server message: RLI status
+             * 
              * OK - successful login
              * REG - register new user
              * NOK - password doesn't match UID
@@ -248,7 +251,10 @@ int main(int argc, char** argv) {
             }
             
             /**
-             * changePass command.
+             * Command: changePass oldPassword newPassword
+             * Client message: CPS UID oldPassword newPassword
+             * TCP server message: RCP status
+             * 
              * OK - password changed successfully
              * NLG - user not logged in
              * NOK - old password doesn't match UID's current password
@@ -287,7 +293,10 @@ int main(int argc, char** argv) {
             }
             
             /**
-             * Unregister command.
+             * Command: unregister
+             * Client message: UNR UID password
+             * UDP server message: RUR status
+             * 
              * OK - unregistered successfully
              * UNR - user was not registered
              * NOK - user was not logged in
@@ -329,7 +338,10 @@ int main(int argc, char** argv) {
             }
             
             /**
-             * Logout command.
+             * Command: logout
+             * Client message: LOU UID password
+             * UDP server message: RLO status
+             * 
              * OK - logged out successfully
              * UNR - user was not registered
              * NOK - user was not logged in
@@ -371,7 +383,7 @@ int main(int argc, char** argv) {
             }
             
             /**
-             * Exit command.
+             * Command: exit
              */
             case exit_user: {
                 if (logged_in) 
