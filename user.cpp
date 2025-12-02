@@ -42,7 +42,7 @@ enum Command_Options
 };
 
 /**
- * Identify what command the user has just sent
+ * Identify what command the user has just sent.
  *
  * @param command
  * @return enum value
@@ -78,7 +78,7 @@ Command_Options resolveCommand(string command)
 }
 
 /**
- * Splits given string into a vector, using ' ' as a delimiter.
+ * Splits given string into a vector, using " " as a delimiter.
  *
  * @param input
  * @return tokens
@@ -107,8 +107,6 @@ string connect_UDP(char *ip_address, char *port, string msg)
 {
     int msg_len = msg.length();
     char buffer[MAX_STRING];
-    ssize_t sent;
-    string response;
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1)
@@ -128,7 +126,7 @@ string connect_UDP(char *ip_address, char *port, string msg)
         exit(1);
     }
 
-    sent = sendto(fd, msg.c_str(), msg_len, 0, res->ai_addr, res->ai_addrlen);
+    ssize_t sent = sendto(fd, msg.c_str(), msg_len, 0, res->ai_addr, res->ai_addrlen);
     if (sent == -1)
     {
         cout << "Erro a enviar mensagem para servidor UDP.\n";
@@ -144,8 +142,13 @@ string connect_UDP(char *ip_address, char *port, string msg)
         exit(-1);
     }
 
-    write(1, buffer, sent); // só para testar
-    response = buffer;
+    sent = write(1, buffer, sent); // só para testar
+    if (sent == -1)
+    {
+        cout << "Erro a escrever mensagem para servidor UDP.\n";
+        exit(-1);
+    }
+    string response = buffer;
 
     freeaddrinfo(res);
     close(fd);
@@ -163,8 +166,6 @@ string connect_TCP(char *ip_address, char *port, string msg)
 {
     int msg_len = msg.length();
     char buffer[MAX_STRING];
-    ssize_t sent;
-    string response;
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd == -1)
@@ -185,7 +186,7 @@ string connect_TCP(char *ip_address, char *port, string msg)
         exit(1);
     }
 
-    sent = connect(fd, res->ai_addr, res->ai_addrlen);
+    ssize_t sent = connect(fd, res->ai_addr, res->ai_addrlen);
     if (sent == -1)
     {
         cout << "Erro a tentar conectar com servidor TCP.\n";
@@ -206,8 +207,13 @@ string connect_TCP(char *ip_address, char *port, string msg)
         exit(1);
     }
 
-    write(1, buffer, sent); // só para testar
-    response = buffer;
+    sent = write(1, buffer, sent); // só para testar
+    if (sent == -1)
+    {
+        cout << "Erro a escrever mensagem para servidor UDP.\n";
+        exit(-1);
+    }
+    string response = buffer;
 
     freeaddrinfo(res);
     close(fd);
@@ -218,7 +224,8 @@ string connect_TCP(char *ip_address, char *port, string msg)
 int main(int argc, char **argv)
 {
     bool exit_program = false, logged_in = false;
-    string input, command, response, msg, curr_user = "", curr_pass = "", status;
+    string input, command, response, msg;
+    string curr_user = "", curr_pass = "", status;
 
     // Use default values for IP address and port
     if (argc == 1)
@@ -238,6 +245,7 @@ int main(int argc, char **argv)
     while (!exit_program)
     {
         // Read input from user and extract first word
+
         getline(cin, input);
         vector<string> tokens = splitString(input);
         command = tokens[0];
@@ -262,7 +270,7 @@ int main(int argc, char **argv)
             }
 
             // Establish UDP connection
-            msg = "LIN" + ' ' + tokens[1] + ' ' + tokens[2] + '\n';
+            msg = "LIN " + tokens[1] + " " + tokens[2] + "\n";
             response = connect_UDP(ip_address, port, msg);
 
             status = splitString(response)[1];
@@ -306,7 +314,7 @@ int main(int argc, char **argv)
             }
 
             // Establish TCP connection
-            msg = "CPS" + ' ' + curr_user + tokens[1] + ' ' + tokens[2] + '\n';
+            msg = "CPS " + curr_user + tokens[1] + " " + tokens[2] + '\n';
             response = connect_TCP(ip_address, port, msg);
 
             status = splitString(response)[1];
@@ -353,7 +361,7 @@ int main(int argc, char **argv)
             }
 
             // Establish UDP connection
-            msg = "UNR" + ' ' + curr_user + ' ' + curr_pass + '\n';
+            msg = "UNR " + curr_user + " " + curr_pass + '\n';
             response = connect_UDP(ip_address, port, msg);
 
             status = splitString(response)[1];
@@ -403,7 +411,7 @@ int main(int argc, char **argv)
             }
 
             // Establish UDP connection
-            msg = "LOU" + ' ' + curr_user + ' ' + curr_pass + '\n';
+            msg = "LOU " + curr_user + " " + curr_pass + '\n';
             response = connect_UDP(ip_address, port, msg);
 
             status = splitString(response)[1];
@@ -479,7 +487,7 @@ int main(int argc, char **argv)
             }
 
             // Establish TCP connection
-            msg = "CLS" + ' ' + curr_user + ' ' + curr_pass + ' ' + tokens[1] + '\n';
+            msg = "CLS " + curr_user + " " + curr_pass + " " + tokens[1] + '\n';
             response = connect_TCP(ip_address, port, msg);
 
             status = splitString(response)[1];
@@ -543,7 +551,7 @@ int main(int argc, char **argv)
             }
 
             // Establish UDP connection
-            msg = "LME" + ' ' + curr_user + ' ' + curr_pass + '\n';
+            msg = "LME " + curr_user + " " + curr_pass + '\n';
             response = connect_UDP(ip_address, port, msg);
 
             status = splitString(response)[1];
@@ -608,7 +616,7 @@ int main(int argc, char **argv)
             }
 
             // Establish TCP connection
-            msg = "RID" + ' ' + curr_user + ' ' + curr_pass + ' ' + tokens[1] + ' ' + tokens[2] + '\n';
+            msg = "RID " + curr_user + " " + curr_pass + " " + tokens[1] + " " + tokens[2] + '\n';
             response = connect_TCP(ip_address, port, msg);
 
             status = splitString(response)[1];
@@ -673,7 +681,7 @@ int main(int argc, char **argv)
             }
 
             // Establish UDP connection
-            msg = "LME" + ' ' + curr_user + ' ' + curr_pass + '\n';
+            msg = "LME " + curr_user + " " + curr_pass + '\n';
             response = connect_UDP(ip_address, port, msg);
 
             status = splitString(response)[1];
