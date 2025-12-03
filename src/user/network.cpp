@@ -1,0 +1,135 @@
+#include <iostream>
+#include <vector>
+#include <iterator>
+#include <sstream>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
+#include <network.hpp>
+#include <constants.hpp>
+
+using namespace std;
+
+int fd, errcode;
+ssize_t msg;
+socklen_t addrlen;
+struct addrinfo hints, *res;
+struct sockaddr_in addr;
+
+string connect_UDP(char *ip_address, char *port, string msg)
+{
+    int msg_len = msg.length();
+    char buffer[MAX_STRING];
+
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd == -1)
+    {
+        cout << "Erro a criar socket.\n";
+        exit(1);
+    }
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+
+    errcode = getaddrinfo(ip_address, port, &hints, &res);
+    if (errcode != 0)
+    {
+        cout << "Erro a estabelecer conexão UDP.\n";
+        exit(1);
+    }
+
+    ssize_t sent = sendto(fd, msg.c_str(), msg_len, 0, res->ai_addr, res->ai_addrlen);
+    if (sent == -1)
+    {
+        cout << "Erro a enviar mensagem para servidor UDP.\n";
+        exit(-1);
+    }
+
+    addrlen = sizeof(addr);
+    sent = recvfrom(fd, buffer, MAX_STRING, 0,
+                    (struct sockaddr *)&addr, &addrlen);
+    if (sent == -1)
+    {
+        cout << "Erro a receber mensagem do servidor UDP.\n";
+        exit(-1);
+    }
+
+    sent = write(1, buffer, sent); // só para testar
+    if (sent == -1)
+    {
+        cout << "Erro a escrever mensagem para servidor UDP.\n";
+        exit(-1);
+    }
+    string response = buffer;
+
+    freeaddrinfo(res);
+    close(fd);
+
+    return response;
+}
+
+string connect_TCP(char *ip_address, char *port, string msg)
+{
+    int msg_len = msg.length();
+    char buffer[MAX_STRING];
+
+    fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd == -1)
+    {
+        cout << "Erro a criar socket.\n";
+        exit(1);
+    }
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
+
+    errcode = getaddrinfo(ip_address, port, &hints, &res);
+    if (errcode != 0)
+    {
+        cout << "Erro a estabelecer conexão TCP.\n";
+        exit(1);
+    }
+
+    ssize_t sent = connect(fd, res->ai_addr, res->ai_addrlen);
+    if (sent == -1)
+    {
+        cout << "Erro a tentar conectar com servidor TCP.\n";
+        exit(1);
+    }
+
+    sent = write(fd, msg.c_str(), msg_len);
+    if (sent == -1)
+    {
+        cout << "Erro a enviar mensagem para servidor TCP.\n";
+        exit(1);
+    }
+    // write e read Têm de ter loop para enviar todos os n dados
+    sent = read(fd, buffer, MAX_STRING);
+    if (sent == -1)
+    {
+        cout << "Erro a receber mensagem do servidor TCP.\n";
+        exit(1);
+    }
+
+    sent = write(1, buffer, sent); // só para testar
+    if (sent == -1)
+    {
+        cout << "Erro a escrever mensagem para servidor UDP.\n";
+        exit(-1);
+    }
+    string response = buffer;
+
+    freeaddrinfo(res);
+    close(fd);
+
+    return response;
+}
