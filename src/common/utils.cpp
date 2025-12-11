@@ -83,7 +83,6 @@ bool check_date(string &s)
 
 bool check_file_name(string &s)
 {
-    int size = s.size();
     char *c = new char[s.size() + 1]; // allocate
     strcpy(c, s.c_str());
     char *dot = strrchr(c, '.');

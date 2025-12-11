@@ -37,7 +37,7 @@ int main(int argc, char **argv)
         switch (resolveCommand(command))
         {
         case login:
-        {
+        { 
             handle_login(tokens);
             break;
         }
@@ -102,7 +102,9 @@ int main(int argc, char **argv)
          * Invalid commands.
          */
         default:
-            cout << "Apenas são autorizados comandos válidos.\n";
+            cout << ("Only the following commands are valid:\n"
+                    "- login UID password\n"
+                    "- changePass oldPassword newPassword\n");
             break;
         }
     }

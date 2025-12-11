@@ -27,23 +27,23 @@ void handle_ip_port(int argc, char **argv)
 {
     // Use default values for IP address and port
     if (argc == 1)
-    {
-        strcpy(ip_address, IP);
-        strcpy(port, PORT);
+    { //mudar depois!!!!!
+        strcpy(ip_address, "193.136.138.142");
+        strcpy(port, "58000");
     }
     // Use IP and port values given by user
-    else if (argc == 2)
+    else if (argc == 3)
     {
         strcpy(ip_address, argv[1]);
         strcpy(port, argv[2]);
     }
     else
     {
-        cout << "Incorrect number of arguments. Usage: ./user [-n ESIP] [-p ESport]\n";
+        cout << "Incorrect number of arguments. Usage: ./user [-n ESIP] [-p ESport]\n\n";
         exit(1);
     }
 
-    cout << "Welcome!\n";
+    cout << "Welcome!\n\n";
 }
 
 /// o user tem de verificar os replies do server?
@@ -75,59 +75,61 @@ of 8 digits*/
  */
 void handle_login(vector<string> tokens)
 {
-    string response, msg, status, reply_command;
+    string response, status, msg, reply_command;
     vector<string> divided_response;
+    
     if (tokens.size() != 3)
     {
-        cout << "Por favor introduza o seu username e password.\n";
+        cout << "Incorrect number of arguments.\nUsage: login [UID] [password]\n\n";
         return;
     }
     else if (!check_size_uid(tokens[1]))
     {
-        cout << "UserID só deve conter 6 digitos\n";
+        cout << "UserID must have exactly 6 digits.\n\n";
         return;
     }
     else if (!check_size_password(tokens[2]))
     {
-        cout << "Palavra passe só deve conter 8 dígitos\n";
+        cout << "Password must have exactly 8 characters.\n\n";
         return;
     }
     else if (!check_only_digits(tokens[1]))
     {
-        cout << "User<id só deve conter digítos\n";
+        cout << "UserID must have only digits.\n\n";
         return;
     }
     else if (!check_only_alphanumerical(tokens[2]))
     {
-        cout << "A palavra passe só deve conter digítos ou letras\n";
+        cout << "Password must have only alphanumeric characters.\n";
         return;
     }
 
     // Establish UDP connection
-    msg = "LIN " + tokens[1] + " " + tokens[2] + "\n";
+    msg = "LIN " + tokens[1] + " " + tokens[2] + '\n';
     response = connect_UDP(ip_address, port, msg);
 
     divided_response = splitString(response);
-    reply_command = divided_response[0];
-    status = splitString(response)[1];
+    reply_command = trim(divided_response[0]);
+    status =  trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
-        cout << "Unexpected protocol message was received\n";
+        cout << "Unexpected protocol message was received.\n\n";
         return;
     }
 
     // Possible status outcomes
     if (status == "OK")
     {
-        cout << "Login efetuado com sucesso.\n";
+        cout << "Logged in successfully. Welcome " + tokens[1] + "!\n\n";
         curr_user = tokens[1];
         curr_pass = tokens[2];
         logged_in = true;
+        return;
     }
-    if (status == "REG")
+    else if (status == "REG")
     {
-        cout << "Conta criada com sucesso.\n";
+        cout << "New account created successfully. Welcome " + tokens[1] + "!\n\n";
         curr_user = tokens[1];
         curr_pass = tokens[2];
         logged_in = true;
@@ -135,12 +137,12 @@ void handle_login(vector<string> tokens)
     }
     else if (status == "NOK")
     {
-        cout << "Username ou password incorretos.\n";
+        cout << "Failed to authenticate user. UserID or password are incorrect.\n\n";
         return;
     }
     else if (status == "ERR")
     {
-        cout << "Syntax of the request message is incorrect\n";
+        cout << "Syntax of the request message is incorrect.\n\n";
         return;
     }
     return;
@@ -162,27 +164,27 @@ void handle_changePass(vector<string> tokens)
     vector<string> divided_response;
     if (tokens.size() != 3)
     {
-        cout << "Por favor introduza a password antiga e a password nova.\n";
+        cout << "Incorrect number of arguments.\nUsage: changePass [oldPassword] [newPassword]\n\n";
         return;
     }
     else if (!check_size_password(tokens[1]))
     {
-        cout << "palavra passe antiga só deve conter 8 dígitos\n";
+        cout << "Old password must have exactly 8 characters.\n\n";
         return;
     }
     else if (!check_size_password(tokens[2]))
     {
-        cout << "palavra passe nova só deve conter 8 dígitos\n";
+        cout << "New password must have exactly 8 characters.\n\n";
         return;
     }
     else if (!check_only_alphanumerical(tokens[1]))
     {
-        cout << "A palavra passe antiga só deve conter digítos ou letras\n";
+        cout << "Old password must have only alphanumeric characters.\n\n";
         return;
     }
     else if (!check_only_alphanumerical(tokens[2]))
     {
-        cout << "A palavra passe nova só deve conter digítos ou letras\n";
+        cout << "New password must have only alphanumeric characters.\n\n";
         return;
     }
 
@@ -191,39 +193,40 @@ void handle_changePass(vector<string> tokens)
     response = connect_TCP(ip_address, port, msg);
 
     divided_response = splitString(response);
-    reply_command = divided_response[0];
-    status = splitString(response)[1];
+    reply_command = trim(divided_response[0]);
+    status =  trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
-        cout << "unexpected protocol message was received\n";
+        cout << "Unexpected protocol message was received.\n\n";
         return;
     }
+
     // Possible status outcomes
     if (status == "OK")
     {
-        cout << "Password alterada com sucesso.\n";
+        cout << "Password changed successfuly.\n\n";
         curr_pass = tokens[2];
         return;
     }
     else if (status == "NLG")
     {
-        cout << "Por favor faça login primeiro.\n";
+        cout << "Please login into an account before changing the password.\n\n";
         return;
     }
     else if (status == "NOK")
     {
-        cout << "Password dada não corresponde à password atual.\n";
+        cout << "The old password provided does not correspond to the current password.\n\n";
         return;
     }
     else if (status == "NID")
     {
-        cout << "Username fornecido não existe.\n";
+        cout << "Provided UserID does not exist.\n\n";
         return;
     }
     else if (status == "ERR")
     {
-        cout << "syntax of the request message is incorrect\n";
+        cout << "Syntax of the request message is incorrect.\n\n";
         return;
     }
     return;
@@ -245,7 +248,7 @@ void handle_unregister(vector<string> tokens)
     vector<string> divided_response;
     if (tokens.size() != 1)
     {
-        cout << "Apenas introduza o comando 'unregister'.\n";
+        cout << "Incorrect number of arguments.\nUsage: unregister\n\n";
         return;
     }
     // Establish UDP connection
@@ -254,42 +257,42 @@ void handle_unregister(vector<string> tokens)
     response = connect_UDP(ip_address, port, msg);
 
     divided_response = splitString(response);
-    reply_command = divided_response[0];
-    status = splitString(response)[1];
+    reply_command = trim(divided_response[0]);
+    status =  trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
-        cout << "unexpected protocol message was received\n";
+        cout << "Unexpected protocol message was received.\n\n";
         return;
     }
 
     // Possible status outcomes
     if (status == "OK")
     {
-        // REMOVER PASTA DO USER!!!!!
-        cout << "Unregister efetuado com sucesso.\n";
+        // REMOVER PASTA DO USER????
+        cout << "Unregistered successfuly.\n\n";
         curr_user = "";
         curr_pass = "";
         logged_in = false;
     }
     if (status == "UNR")
     {
-        cout << "Não pode remover o registo de uma conta não registada.\n";
+        cout << "The account under UserID does not exist.\n\n";
         return;
     }
     else if (status == "NOK")
     {
-        cout << "Não pode remover o registo de uma conta que não se encontra ativa.\n";
+        cout << "Please login into an account before unregistering.\n\n";
         return;
     }
     else if (status == "WRP")
     {
-        cout << "Password incorreta.\n";
+        cout << "Wrong password.\n\n";
         return;
     }
     else if (status == "ERR")
     {
-        cout << "syntax of the request message is incorrect\n";
+        cout << "Syntax of the request message is incorrect\n\n";
         return;
     }
     return;
@@ -312,7 +315,7 @@ void handle_logout(vector<string> tokens)
 
     if (tokens.size() != 1)
     {
-        cout << "Apenas introduza o comando 'logout'.\n";
+        cout << "Incorrect number of arguments.\nUsage: logout\n\n";
         return;
     }
 
@@ -321,18 +324,19 @@ void handle_logout(vector<string> tokens)
     response = connect_UDP(ip_address, port, msg);
 
     divided_response = splitString(response);
-    reply_command = divided_response[0];
-    status = splitString(response)[1];
+    reply_command = trim(divided_response[0]);
+    status =  trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
-        cout << "unexpected protocol message was received\n";
+        cout << "Unexpected protocol message was received.\n\n";
         return;
     }
+
     // Possible status outcomes
     if (status == "OK")
     {
-        cout << "Logout efetuado com sucesso.\n";
+        cout << "Logged out successfully.\n\n";
         curr_user = "";
         curr_pass = "";
 
@@ -340,22 +344,22 @@ void handle_logout(vector<string> tokens)
     }
     else if (status == "UNR")
     {
-        cout << "Não pode fazer logout de uma conta não registada.\n";
+        cout << "Cannot logout of a unregistered account.\n\n";
         return;
     }
     else if (status == "NOK")
     {
-        cout << "Não pode fazer logout de uma conta que não se encontra ativa.\n";
+        cout << "Please login into an account before logging out.\n\n";
         return;
     }
     else if (status == "WRP")
     {
-        cout << "Password incorreta.\n";
+        cout << "Incorrect password.\n\n";
         return;
     }
     else if (status == "ERR")
     {
-        cout << "syntax of the request message is incorrect\n";
+        cout << "Syntax of the request message is incorrect.\n\n";
         return;
     }
     return;
@@ -366,9 +370,14 @@ void handle_logout(vector<string> tokens)
  */
 bool handle_exit_user(vector<string> tokens)
 {
+    if (tokens.size() != 1)
+    {
+        cout << "Incorrect number of arguments.\nUsage: exit\n\n";
+        return false;
+    }
     if (logged_in)
     {
-        cout << "Please log out of your account before exiting.";
+        cout << "Please log out of your account before exiting.\n\n";
         return true;
     }
     return false;
@@ -389,56 +398,64 @@ void handle_create(vector<string> tokens)
 
     if (tokens.size() != 5)
     {
-        cout << "Número incorreto de argumentos.\n";
+        cout << "Incorrect number of arguments.\nUsage: create [name] [event_fname] [event_date] [num_attendees]\n\n";
         return;
     }
     else if (!check_size_event_name(tokens[1]))
     {
-        cout << "A descrição do evento deve conter até 10 caracteres\n";
+        cout << "Name of event must have exactly 10 characters.\n\n";
         return;
     }
     else if (!check_only_alphanumerical(tokens[1]))
     {
-        cout << "A descrição do evento deve só conter alphanumericos.\n";
+        cout << "Name of event must have only alphanumeric characters.\n\n";
         return;
     }
     else if (!check_only_digits(tokens[5]) || stoi(tokens[5]) < 10 || stoi(tokens[5]) > 99)
     {
-        cout << "O numero de lugares disponíveis deve ser um inteiro entre 10 a 999\n";
+        cout << "Number of seats in event must be a number between 10 and 999.\n\n";
         return;
     }
     else if (!check_size_file_name(tokens[2]) || !check_file_name(tokens[2]))
     {
-        cout << "O nome do ficheiro está incorreto.\n";
+        cout << "Name of event is not valid.\n\n";
         return;
     }
+
     // Establish TCP connection
     msg = "CRE " + curr_user + " " + curr_pass + " " +
-          tokens[1] + " " + tokens[2] + " " + tokens[3] + "\n";
+          tokens[1] + " " + tokens[2] + " " + tokens[3] + "\n\n";
     response = connect_TCP(ip_address, port, msg);
 
     divided_response = splitString(response);
-    reply_command = divided_response[0];
-    status = splitString(response)[1];
+    reply_command = trim(divided_response[0]);
+    status =  trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
-        cout << "unexpected protocol message was received\n";
+        cout << "Unexpected protocol message was received.\n\n";
         return;
     }
+
     // Possible status outcomes
     if (status == "OK")
     {
+        cout << "Event created successfully.\n\n";
         return;
     }
     else if (status == "NOK")
     {
-        cout << "não há eventos criados.\n";
+        cout << "Event could not be created.\n\n";
+        return;
+    }
+    else if (status == "NLG")
+    {
+        cout << "Please login into an account before creating an event.\n\n";
         return;
     }
     else if (status == "ERR")
     {
-        cout << "syntax of the request message is incorrect\n";
+        cout << "Syntax of the request message is incorrect.\n\n";
         return;
     }
     return;
@@ -461,17 +478,17 @@ void handle_close_event(vector<string> tokens)
     vector<string> divided_response;
     if (tokens.size() != 2)
     {
-        cout << "Por favor indique o evento que pretende fechar.\n";
+        cout << "Incorrect number of arguments.\nUsage: close [EventID]\n\n";
         return;
     }
     else if (!check_size_eid(tokens[1]))
     {
-        cout << "EID só deve conter 3 digitos\n";
+        cout << "EventID must have exactly 3 digits.\n\n";
         return;
     }
     else if (!check_only_digits(tokens[1]))
     {
-        cout << "EID só deve conter dígitos\n";
+        cout << "EventID must have only digits.\n\n";
         return;
     }
 
@@ -480,58 +497,58 @@ void handle_close_event(vector<string> tokens)
     response = connect_TCP(ip_address, port, msg);
 
     divided_response = splitString(response);
-    reply_command = divided_response[0];
-    status = splitString(response)[1];
+    reply_command = trim(divided_response[0]);
+    status =  trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
-        cout << "unexpected protocol message was received\n";
+        cout << "Unexpected protocol message was received.\n\n";
         return;
     }
     // Possible status outcomes
     if (status == "OK")
     {
-        cout << "Evento fechado com sucesso.\n";
+        cout << "Event closed successfully.\n\n";
         return;
     }
     if (status == "NOK")
     {
-        cout << "Utilizador não existe ou a password está incorreta.\n";
+        cout << "Failed to authenticate user. UserID or password are incorrect.\n\n";
         return;
     }
     else if (status == "NLG")
     {
-        cout << "Por favor faça login primeiro.\n";
+        cout << "Please login into an account before closing an event.\n\n";
         return;
     }
     else if (status == "NOE")
     {
-        cout << "Evento não existe.\n";
+        cout << "Given event does not exist.\n\n";
         return;
     }
     else if (status == "EOW")
     {
-        cout << "Evento não foi criado pelo utilizador.\n";
+        cout << "You're not allowed to close events created by other accounts.\n\n";
         return;
     }
     else if (status == "SLD")
     {
-        cout << "Evento esgotado.\n";
+        cout << "Event is currently sold out.\n\n";
         return;
     }
     else if (status == "PST")
     {
-        cout << "Evento já aconteceu.\n";
+        cout << "Event has already happened.\n\n";
         return;
     }
     else if (status == "CLO")
     {
-        cout << "Evento já se encontrava fechado.\n";
+        cout << "Event had already been closed before.\n\n";
         return;
     }
     else if (status == "ERR")
     {
-        cout << "syntax of the request message is incorrect\n";
+        cout << "Syntax of the request message is incorrect.\n\n";
         return;
     }
     return;
@@ -551,7 +568,7 @@ void handle_myevents(vector<string> tokens)
     vector<string> divided_response;
     if (tokens.size() != 1)
     {
-        cout << "Apenas introduza o comando 'myevents' ou 'mye'.\n";
+        cout << "Incorrect number of arguments.\nUsage: myevents OR mye\n\n";
         return;
     }
 
@@ -560,43 +577,44 @@ void handle_myevents(vector<string> tokens)
     response = connect_UDP(ip_address, port, msg);
 
     divided_response = splitString(response);
-    reply_command = divided_response[0];
-    status = splitString(response)[1];
+    reply_command = trim(divided_response[0]);
+    status =  trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
-        cout << "unexpected protocol message was received\n";
+        cout << "Unexpected protocol message was received.\n\n";
         return;
     }
+
     // Possible status outcomes
     if (status == "OK")
     {
         response_size = divided_response.size();
-        for (int i = 2; i < response_size; i += 2)
+        for (int i = 2; (size_t)i < response_size; i += 2)
         {
-            cout << divided_response[i] + divided_response[i + 1] + "\n";
+           cout << "Event " + divided_response[i] + ": " + resolveState(divided_response[i + 1]) + ".\n";
         }
         return;
     }
     if (status == "NLG")
     {
-        cout << "Por favor faça login primeiro.\n";
+        cout << "Please login into your account before checking your created events.\n\n";
         logged_in = true;
         return;
     }
     else if (status == "NOK")
     {
-        cout << "não há eventos criados.\n";
+        cout << "No events have been created yet.\n\n";
         return;
     }
     else if (status == "WRP")
     {
-        cout << "Password incorreta.\n";
+        cout << "Incorrect password.\n\n";
         return;
     }
     else if (status == "ERR")
     {
-        cout << "syntax of the request message is incorrect\n";
+        cout << "Syntax of the request message is incorrect.\n\n";
         return;
     }
     return;
@@ -614,7 +632,7 @@ void handle_list(vector<string> tokens)
     vector<string> divided_response;
     if (tokens.size() != 1)
     {
-        cout << "Apenas introduza o comando 'list'\n";
+        cout << "Incorrect number of arguments.\nUsage: list\n\n";
         return;
     }
 
@@ -623,33 +641,34 @@ void handle_list(vector<string> tokens)
     response = connect_TCP(ip_address, port, msg);
 
     divided_response = splitString(response);
-    reply_command = divided_response[0];
-    status = splitString(response)[1];
+    reply_command = trim(divided_response[0]);
+    status =  trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
-        cout << "unexpected protocol message was received\n";
+        cout << "Unexpected protocol message was received.\n\n";
         return;
     }
+
     // Possible status outcomes
     if (status == "OK")
     {
         response_size = divided_response.size();
-        for (int i = 2; i < response_size; i += 4)
+        for (int i = 2; (size_t)i < response_size; i += 4)
         {
-            cout << divided_response[i] + divided_response[i + 1] +
-                        divided_response[i + 2] + divided_response[i + 4] + "\n";
+            cout << "Event " + divided_response[i + 1] + "(ID: " + divided_response[i] + ")" + 
+                        "at date " + divided_response[i + 3] + ": " + resolveState(divided_response[i + 2]) + "\n\n";
         }
         return;
     }
     else if (status == "NOK")
     {
-        cout << "não há eventos criados.\n";
+        cout << "No events have been created yet.\n\n";
         return;
     }
     else if (status == "ERR")
     {
-        cout << "syntax of the request message is incorrect\n";
+        cout << "Syntax of the request message is incorrect.\n\n";
         return;
     }
     return;
@@ -667,17 +686,17 @@ void handle_show(vector<string> tokens)
     vector<string> divided_response;
     if (tokens.size() != 2)
     {
-        cout << "Por favor indique o evento a colocar\n";
+        cout << "Incorrect number of arguments.\nUsage: show [EventID]\n\n";
         return;
     }
     else if (!check_size_eid(tokens[1]))
     {
-        cout << "EID só deve conter 3 digitos\n";
+        cout << "EventID must have exactly 3 digits.\n\n";
         return;
     }
     else if (!check_only_digits(tokens[1]))
     {
-        cout << "EID só deve conter dígitos\n";
+        cout << "EventID must have only digits.\n\n";
         return;
     }
 
@@ -686,31 +705,32 @@ void handle_show(vector<string> tokens)
     response = connect_TCP(ip_address, port, msg);
 
     divided_response = splitString(response);
-    reply_command = divided_response[0];
-    status = splitString(response)[1];
+    reply_command = trim(divided_response[0]);
+    status =  trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
-        cout << "unexpected protocol message was received\n";
+        cout << "Unexpected protocol message was received.\n\n";
         return;
     }
+
     // Possible status outcomes
     if (status == "OK")
     {
         response_size = divided_response.size();
         /// ficheiro que recebe pela comunicação tcp tem de ser criado no current
-        cout << divided_response[7] + divided_response[8] + "\n";
+        cout << divided_response[7] + divided_response[8] + "\n\n";
 
         return;
     }
     else if (status == "NOK")
     {
-        cout << "event does not exist, file could not be sent, others.\n";
+        cout << "Unexpected error, please try again.\n\n";
         return;
     }
     else if (status == "ERR")
     {
-        cout << "syntax of the request message is incorrect\n";
+        cout << "Syntax of the request message is incorrect.\n\n";
         return;
     }
     return;
@@ -734,22 +754,22 @@ void handle_reserve(vector<string> tokens)
     string remaining_seats;
     if (tokens.size() != 3)
     {
-        cout << "Por favor indique o evento e o número de lugares que pretende reservar.\n";
+        cout << "Incorrect number of arguments.\nUsage: reserve [EventID] [value]\n\n";
         return;
     }
     else if (!check_size_eid(tokens[1]))
     {
-        cout << "EID só deve conter 3 digitos\n";
+        cout << "EventID must have exactly 3 digits.\n\n";
         return;
     }
     else if (!check_only_digits(tokens[1]))
     {
-        cout << "EID só deve conter dígitos\n";
+        cout << "EventID must have only digits.\n\n";
         return;
     }
     else if (!check_only_digits(tokens[2]) || stoi(tokens[2]) < 1 || stoi(tokens[2]) > 999)
     {
-        cout << "o numero de pessoas devem ser entre 1 a 999\n";
+        cout << "Number of seats in event must be a number between 10 and 999.\n\n";
         return;
     }
 
@@ -758,62 +778,62 @@ void handle_reserve(vector<string> tokens)
     response = connect_TCP(ip_address, port, msg);
 
     divided_response = splitString(response);
-    reply_command = divided_response[0];
-    status = splitString(response)[1];
+    reply_command = trim(divided_response[0]);
+    status =  trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
-        cout << "unexpected protocol message was received\n";
+        cout << "Unexpected protocol message was received.\n\n";
         return;
     }
 
     // Possible status outcomes
     if (status == "ACC")
     {
-        cout << "reserva pode ser satisfeita\n";
+        cout << "Reservation made successfully. Enjoy the event!\n\n";
         return;
     }
-    if (status == "NOK")
+    else if (status == "NOK")
     {
-        cout << "evento não está ativo\n";
+        cout << "Event is not currently active.\n\n";
         return;
     }
     else if (status == "NLG")
     {
-        cout << "Por favor faça login primeiro.\n";
+        cout << "Please login into an account before making a reservation.\n\n";
         return;
     }
     else if (status == "SLD")
     {
-        cout << "Evento esgotado.\n";
+        cout << "Event was sold out.\n\n";
         return;
     }
     else if (status == "PST")
     {
-        cout << "Evento já aconteceu.\n";
+        cout << "Event has already happened.\n\n";
         return;
     }
     else if (status == "CLO")
     {
-        cout << "Evento já se encontrava fechado.\n";
+        cout << "Event has already been closed.\n\n";
         return;
     }
     else if (status == "REJ")
     {
         remaining_seats = divided_response[2];
-        cout << "the reservation was rejected because the number of requested places" +
-                    tokens[2] + "is larger than the number of remaining places." +
-                    remaining_seats + "\n";
+        cout << "The reservation was rejected because the number of requested places, " +
+                    tokens[2] + ", is larger than the number of remaining places, which is " +
+                    remaining_seats + ".\n\n";
         return;
     }
     else if (status == "WRP")
     {
-        cout << "Password incorreta.\n";
+        cout << "Incorrect password.\n\n";
         return;
     }
     else if (status == "ERR")
     {
-        cout << "syntax of the request message is incorrect\n";
+        cout << "Syntax of the request message is incorrect.\n\n";
         return;
     }
     return;
@@ -833,52 +853,52 @@ void handle_myreservations(vector<string> tokens)
     vector<string> divided_response;
     if (tokens.size() != 1)
     {
-        cout << "Apenas introduza o comando 'myreservations'.\n";
+        cout << "Incorrect number of arguments.\nUsage: myreservations OR myr\n\n";
         return;
     }
 
     // Establish UDP connection
-    msg = "LME " + curr_user + " " + curr_pass + '\n';
+    msg = "LMR " + curr_user + " " + curr_pass + '\n';
     response = connect_UDP(ip_address, port, msg);
 
     divided_response = splitString(response);
-    reply_command = divided_response[0];
-    status = splitString(response)[1];
+    reply_command = trim(divided_response[0]);
+    status =  trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
-        cout << "unexpected protocol message was received\n";
+        cout << "Unexpected protocol message was received.\n\n";
         return;
     }
-
+    
     // Possible status outcomes
     if (status == "OK")
     {
         response_size = divided_response.size();
-        for (int i = 2; i < response_size; i += 2)
+        for (int i = 2; (size_t)i < response_size; i += 2)
         {
-            cout << divided_response[i] + divided_response[i + 1] + "\n";
+            cout << "Reservation for event " + divided_response[i] + ": " + divided_response[i + 1] + "seats reserved.\n";
         }
         return;
     }
     if (status == "NLG")
     {
-        cout << "Por favor faça login primeiro.\n";
+        cout << "Please login into your account before checking your reservations.\n\n";
         return;
     }
     else if (status == "WRP")
     {
-        cout << "Password incorreta.\n";
+        cout << "Incorrect password.\n\n";
         return;
     }
     else if (status == "NOK")
     {
-        cout << "Ainda não efetou nenhuma reserva.\n";
+        cout << "No reservations have been made yet.\n\n";
         return;
     }
     else if (status == "ERR")
     {
-        cout << "syntax of the request message is incorrect\n";
+        cout << "Syntax of the request message is incorrect.\n\n";
         return;
     }
     return;

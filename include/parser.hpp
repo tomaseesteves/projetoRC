@@ -32,4 +32,14 @@ Command_Options resolveCommand(string command);
 /// @return tokens
 vector<string> splitString(string &input);
 
+/// Parses meaning of state received in commands 'list' and 'myevents'
+/// @param state 
+/// @return state of event
+string resolveState(string state);
+
+/// Trims newline from end of string
+/// @param s 
+/// @return s without '\n' at the end
+string trim(string &s);
+
 #endif

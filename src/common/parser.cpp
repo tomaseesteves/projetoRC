@@ -53,3 +53,23 @@ vector<string> splitString(string &input)
     }
     return tokens;
 }
+
+string resolveState(string state) 
+{
+    switch(stoi(state)) 
+    {
+        case 0: return "event has already happened";
+        case 1: return "still accepting reservations";
+        case 2: return "event has sold out all its seats";
+        case 3: return "closed";
+    }
+    return "invalid state";
+}
+
+string trim(string &s) 
+{
+    while (!s.empty() && (s[s.length()-1] == '\n' || s[s.length()-1] == '\r')) {
+        s.erase(s.length()-1);
+    }
+    return s;
+}

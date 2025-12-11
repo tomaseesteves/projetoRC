@@ -30,44 +30,44 @@ string connect_UDP(char *ip_address, char *port, string msg)
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1)
     {
-        cout << "Erro a criar socket.\n";
+        cout << "Error creating socket.\n";
         exit(1);
     }
-
+    
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
-
+    
     errcode = getaddrinfo(ip_address, port, &hints, &res);
     if (errcode != 0)
     {
-        cout << "Erro a estabelecer conexão UDP.\n";
+        cout << "Error establishing UDP connection.\n";
         exit(1);
     }
-
+    
     ssize_t n = sendto(fd, msg.c_str(), msg_len, 0, res->ai_addr, res->ai_addrlen);
     if (n == -1)
     {
-        cout << "Erro a enviar mensagem para servidor UDP.\n";
+        cout << "Error sending message to UDP server.\n";
         exit(-1);
     }
-
+    
     addrlen = sizeof(addr);
     n = recvfrom(fd, buffer, MAX_STRING, 0,
                  (struct sockaddr *)&addr, &addrlen);
     if (n == -1)
     {
-        cout << "Erro a receber mensagem do servidor UDP.\n";
+        cout << "Error receiving message from UDP server.\n";
         exit(-1);
     }
 
     n = write(1, buffer, n); // só para testar
     if (n == -1)
     {
-        cout << "Erro a escrever mensagem para servidor UDP.\n";
+        cout << "Error writing message from UDP server.\n";
         exit(-1);
     }
-    string response = buffer;
+    string response(buffer, n);
 
     freeaddrinfo(res);
     close(fd);
