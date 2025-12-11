@@ -45,24 +45,24 @@ string connect_UDP(char *ip_address, char *port, string msg)
         exit(1);
     }
 
-    ssize_t sent = sendto(fd, msg.c_str(), msg_len, 0, res->ai_addr, res->ai_addrlen);
-    if (sent == -1)
+    ssize_t n = sendto(fd, msg.c_str(), msg_len, 0, res->ai_addr, res->ai_addrlen);
+    if (n == -1)
     {
         cout << "Erro a enviar mensagem para servidor UDP.\n";
         exit(-1);
     }
 
     addrlen = sizeof(addr);
-    sent = recvfrom(fd, buffer, MAX_STRING, 0,
-                    (struct sockaddr *)&addr, &addrlen);
-    if (sent == -1)
+    n = recvfrom(fd, buffer, MAX_STRING, 0,
+                 (struct sockaddr *)&addr, &addrlen);
+    if (n == -1)
     {
         cout << "Erro a receber mensagem do servidor UDP.\n";
         exit(-1);
     }
 
-    sent = write(1, buffer, sent); // só para testar
-    if (sent == -1)
+    n = write(1, buffer, n); // só para testar
+    if (n == -1)
     {
         cout << "Erro a escrever mensagem para servidor UDP.\n";
         exit(-1);
@@ -99,29 +99,39 @@ string connect_TCP(char *ip_address, char *port, string msg)
         exit(1);
     }
 
-    ssize_t sent = connect(fd, res->ai_addr, res->ai_addrlen);
-    if (sent == -1)
+    ssize_t n = connect(fd, res->ai_addr, res->ai_addrlen);
+    ssize_t total_bytes = 0;
+
+    if (n == -1)
     {
         cout << "Erro a tentar conectar com servidor TCP.\n";
         exit(1);
     }
+    while (total_bytes != msg_len)
+    {
+        n = write(fd, msg.c_str(), msg_len);
+        total_bytes += n;
+    }
 
-    sent = write(fd, msg.c_str(), msg_len);
-    if (sent == -1)
+    if (n == -1)
     {
         cout << "Erro a enviar mensagem para servidor TCP.\n";
         exit(1);
     }
     // write e read Têm de ter loop para enviar todos os n dados
-    sent = read(fd, buffer, MAX_STRING);
-    if (sent == -1)
+    while (total_bytes != MAX_STRING)
+    {
+        n = read(fd, buffer, MAX_STRING);
+        total_bytes += n;
+    }
+    if (n == -1)
     {
         cout << "Erro a receber mensagem do servidor TCP.\n";
         exit(1);
     }
 
-    sent = write(1, buffer, sent); // só para testar
-    if (sent == -1)
+    n = write(1, buffer, n); // só para testar
+    if (n == -1)
     {
         cout << "Erro a escrever mensagem para servidor UDP.\n";
         exit(-1);
