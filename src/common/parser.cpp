@@ -73,3 +73,49 @@ string trim(string &s)
     }
     return s;
 }
+
+size_t split_nth_space(string &s, int n)
+{
+    size_t pos = -1;
+    while (n-- > 0)
+    {
+        pos = s.find(' ', pos + 1);
+        if (pos == string::npos) break;
+    }
+    return pos;
+}
+
+vector<string> extract_file_data(string &s, int command_flag)
+{
+    vector<string> tokens;
+    size_t first_split = -1;
+    size_t second_split = -1;
+
+    // If given string corresponds to a Create command
+    if(command_flag)
+    {
+        first_split = split_nth_space(s, 3);
+        second_split = split_nth_space(s, 9);
+
+        string user_data = s.substr(0, first_split);
+        string file_data = s.substr(first_split + 1, second_split - first_split - 1);
+        string file_content = s.substr(second_split + 1);
+        tokens.push_back(user_data);
+        tokens.push_back(file_data);
+        tokens.push_back(file_content);
+
+        return tokens;
+    }
+    // If given string corresponds to a Show response
+    first_split = split_nth_space(s, 2);
+    second_split = split_nth_space(s, 10);
+
+    string response_data = s.substr(0, first_split);
+    string file_data = s.substr(first_split + 1, second_split - first_split - 1);
+    string file_content = s.substr(second_split + 1);
+    tokens.push_back(response_data);
+    tokens.push_back(file_data);
+    tokens.push_back(file_content);
+
+    return tokens;
+}

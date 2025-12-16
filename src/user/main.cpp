@@ -29,9 +29,9 @@ int main(int argc, char **argv)
     while (!exit_program)
     {
         // Read input from user and extract first word
-
         getline(cin, input);
         tokens = splitString(input);
+        if (tokens.empty()) continue;
         command = tokens[0];
 
         switch (resolveCommand(command))
@@ -103,8 +103,19 @@ int main(int argc, char **argv)
          */
         default:
             cout << ("Only the following commands are valid:\n"
-                    "- login UID password\n"
-                    "- changePass oldPassword newPassword\n");
+                    "- login [UserID] [password]\n"
+                    "- changePass [oldPassword] [newPassword]\n"
+                    "- unregister\n"
+                    "- logout\n"
+                    "- exit\n"
+                    "- create [name] [event_fname] [event_date] [num_atendees]\n"
+                    "- close [eventID]\n"
+                    "- myevents OR mye\n"
+                    "- list\n"
+                    "- show [eventID]\n"
+                    "- reserve [eventID] [value]\n"
+                    "- myreservations OR myr\n\n"
+                    );
             break;
         }
     }

@@ -14,6 +14,7 @@
 #include <iomanip>
 
 #include <utils.hpp>
+#include <constants.hpp>
 
 using namespace std;
 
@@ -35,6 +36,16 @@ bool check_size_password(string &password)
 bool check_size_file_name(string &s)
 {
     return s.size() <= 24;
+}
+
+bool check_size_event_name(string &s)
+{
+    return s.size() <= 10;
+}
+
+bool check_size_file(int file_size)
+{
+    return file_size < MAX_FILE_SIZE;
 }
 
 bool check_only_digits(string &s)
@@ -61,11 +72,6 @@ bool check_only_alphanumerical(string &s)
     return true;
 }
 
-bool check_size_event_name(string &s)
-{
-    return s.size() <= 10;
-}
-
 bool check_date(string &s)
 {
     tm tm = {};
@@ -83,21 +89,20 @@ bool check_date(string &s)
 
 bool check_file_name(string &s)
 {
-    char *c = new char[s.size() + 1]; // allocate
-    strcpy(c, s.c_str());
-    char *dot = strrchr(c, '.');
-
-    if (dot)
-        dot++;
+    // Find last occurence of '.'
+    const char* dot = strrchr(s.c_str(), '.');
 
     // check for valid extension?
-    if (sizeof(dot) != 3)
+    if (!dot || strlen(dot) != 4)
+    {
         return false;
+    }
 
     for (char c : s)
     {
-        if (!isdigit(c) && (!isalpha(c) && c != '-' && c != '_' && c != '.'))
+        if (!isdigit(c) && !isalpha(c) && c != '-' && c != '_' && c != '.')
         {
+            cout << "INVALID CHAR\n";
             return false;
         }
     }

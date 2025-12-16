@@ -16,6 +16,7 @@
 #include <protocol.hpp>
 #include <parser.hpp>
 #include <utils.hpp>
+#include <file.hpp>
 
 using namespace std;
 
@@ -392,11 +393,11 @@ bool handle_exit_user(vector<string> tokens)
  */
 void handle_create(vector<string> tokens)
 {
-    size_t response_size;
-    string response, msg, status, reply_command;
+    int file_size;
+    string file_content, response, msg, status, reply_command;
     vector<string> divided_response;
 
-    if (tokens.size() != 5)
+    if (tokens.size() != 6)
     {
         cout << "Incorrect number of arguments.\nUsage: create [name] [event_fname] [event_date] [num_attendees]\n\n";
         return;
@@ -418,13 +419,26 @@ void handle_create(vector<string> tokens)
     }
     else if (!check_size_file_name(tokens[2]) || !check_file_name(tokens[2]))
     {
-        cout << "Name of event is not valid.\n\n";
+        cout << "Name of event file is not valid.\n\n";
+        return;
+    }
+
+    if (!extract_file(tokens[2], file_content, file_size))
+    {
+        cout << "Could not open or read the file's content.\n\n";
+        return;
+    }
+
+    if(!check_size_file(file_size))
+    {
+        cout << "File is too large to be sent.\n\n";
         return;
     }
 
     // Establish TCP connection
     msg = "CRE " + curr_user + " " + curr_pass + " " +
-          tokens[1] + " " + tokens[2] + " " + tokens[3] + "\n\n";
+          tokens[1] + " " + tokens[3] + " " + tokens[4] + " " + tokens[5] + " " +
+          tokens[2] + " " + to_string(file_size) + " " + file_content + '\n';
     response = connect_TCP(ip_address, port, msg);
 
     divided_response = splitString(response);
@@ -440,7 +454,7 @@ void handle_create(vector<string> tokens)
     // Possible status outcomes
     if (status == "OK")
     {
-        cout << "Event created successfully.\n\n";
+        cout << "Event created successfully! The event's ID is " + trim(divided_response[2]) + ".\n\n";
         return;
     }
     else if (status == "NOK")
@@ -470,7 +484,7 @@ void handle_create(vector<string> tokens)
  * EOW -  event was not created by current user
  * SLD - event is sold out
  * PST - event has already happened
- * CLO - event has already been closed
+ * CLS - event has already been closed
  */
 void handle_close_event(vector<string> tokens)
 {
@@ -541,7 +555,7 @@ void handle_close_event(vector<string> tokens)
         cout << "Event has already happened.\n\n";
         return;
     }
-    else if (status == "CLO")
+    else if (status == "CLS")
     {
         cout << "Event had already been closed before.\n\n";
         return;
@@ -590,10 +604,12 @@ void handle_myevents(vector<string> tokens)
     if (status == "OK")
     {
         response_size = divided_response.size();
+        cout << "Your events:\n";
         for (int i = 2; (size_t)i < response_size; i += 2)
         {
-           cout << "Event " + divided_response[i] + ": " + resolveState(divided_response[i + 1]) + ".\n";
+            cout << "-> Event " + divided_response[i] + ": " + resolveState(divided_response[i + 1]) + ".\n";
         }
+        cout << "Here are all of your events!\n\n";
         return;
     }
     if (status == "NLG")
@@ -653,12 +669,14 @@ void handle_list(vector<string> tokens)
     // Possible status outcomes
     if (status == "OK")
     {
+        cout << "Current Events:\n";
         response_size = divided_response.size();
-        for (int i = 2; (size_t)i < response_size; i += 4)
+        for (int i = 2; (size_t)i < response_size; i += 5)
         {
-            cout << "Event " + divided_response[i + 1] + "(ID: " + divided_response[i] + ")" + 
-                        "at date " + divided_response[i + 3] + ": " + resolveState(divided_response[i + 2]) + "\n\n";
+            cout << "-> Event " + divided_response[i + 1] + " (ID: " + divided_response[i] + "): " + resolveState(divided_response[i + 2]) + 
+                    "\n   (Event's date: " + divided_response[i + 3] + " " + trim(divided_response[i + 4]) + ")\n";
         }
+        cout << "Full Events List!\n\n";
         return;
     }
     else if (status == "NOK")
@@ -681,9 +699,10 @@ void handle_list(vector<string> tokens)
  */
 void handle_show(vector<string> tokens)
 {
-    size_t response_size;
-    string response, msg, status, reply_command;
-    vector<string> divided_response;
+    string response, msg, status, reply_command, file_data, file_content;
+    vector<string> divided_response, divided_data;
+    uint64_t file_size;
+
     if (tokens.size() != 2)
     {
         cout << "Incorrect number of arguments.\nUsage: show [EventID]\n\n";
@@ -701,8 +720,28 @@ void handle_show(vector<string> tokens)
     }
 
     // Establish TCP connection
-    msg = "SED " + tokens[2] + '\n';
+    msg = "SED " + tokens[1] + '\n';
     response = connect_TCP(ip_address, port, msg);
+
+    if (response.find(" OK") != string::npos)
+    {
+        divided_response = extract_file_data(response, 0);
+        file_data = divided_response[1];
+        divided_data = splitString(file_data);
+        file_size = stoull(divided_data[7]);
+
+        file_content = trim(divided_response[2]);
+
+        if (save_event_file(divided_data[6], file_content, file_size))
+        {
+            cout << "Received event " + divided_data[1] + " created by user " + divided_data[0] + ":\n"
+                    "-> Event's date " + divided_data[2] + " " + divided_data[3] + "\n-> Out of " + 
+                    divided_data[4] + " seats, " + divided_data[5] + " seats have been reserved.\n-> File " 
+                    + divided_data[6] + " of size " + divided_data[7] + " Bytes has been saved to your local directory.\n\n";
+
+        }
+        return;
+    }
 
     divided_response = splitString(response);
     reply_command = trim(divided_response[0]);
@@ -715,14 +754,6 @@ void handle_show(vector<string> tokens)
     }
 
     // Possible status outcomes
-    if (status == "OK")
-    {
-        response_size = divided_response.size();
-        /// ficheiro que recebe pela comunicação tcp tem de ser criado no current
-        cout << divided_response[7] + divided_response[8] + "\n\n";
-
-        return;
-    }
     else if (status == "NOK")
     {
         cout << "Unexpected error, please try again.\n\n";
@@ -813,15 +844,15 @@ void handle_reserve(vector<string> tokens)
         cout << "Event has already happened.\n\n";
         return;
     }
-    else if (status == "CLO")
+    else if (status == "CLS")
     {
         cout << "Event has already been closed.\n\n";
         return;
     }
     else if (status == "REJ")
     {
-        remaining_seats = divided_response[2];
-        cout << "The reservation was rejected because the number of requested places, " +
+        remaining_seats = trim(divided_response[2]);
+        cout << "The reservation was rejected.\n The number of requested places, " +
                     tokens[2] + ", is larger than the number of remaining places, which is " +
                     remaining_seats + ".\n\n";
         return;
@@ -875,10 +906,13 @@ void handle_myreservations(vector<string> tokens)
     if (status == "OK")
     {
         response_size = divided_response.size();
-        for (int i = 2; (size_t)i < response_size; i += 2)
+        cout << "Your reservations:\n";
+        for (int i = 2; (size_t)i < response_size; i += 4)
         {
-            cout << "Reservation for event " + divided_response[i] + ": " + divided_response[i + 1] + "seats reserved.\n";
+            cout << "-> Reservation for event " + divided_response[i] + ": " + trim(divided_response[i + 3]) + " seats reserved.\n"
+                    + "   (Reservation made at date " + divided_response[i + 1] + " " + divided_response[i + 2] + ")\n";
         }
+        cout << "Remember, only the most recent 50 reservations are shown!\n\n";
         return;
     }
     if (status == "NLG")

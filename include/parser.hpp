@@ -42,4 +42,16 @@ string resolveState(string state);
 /// @return s without '\n' at the end
 string trim(string &s);
 
+/// Finds nth occurence of ' ' char in a string
+/// @param s 
+/// @param n 
+/// @return position of nth ' ' char
+size_t split_nth_space(string &s, int n);
+
+/// Separates file data from its content contained within a string
+/// @param s 
+/// @param command_flag
+/// @return tokens
+vector<string> extract_file_data(string &s, int command_flag);
+
 #endif
