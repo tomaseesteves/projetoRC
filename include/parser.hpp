@@ -25,17 +25,17 @@ enum Command_Options
 /// Identify what command the user has just sent.
 /// @param command
 /// @return enum value
-Command_Options resolveCommand(string command);
+Command_Options resolve_command(string command);
 
 /// Splits given string into a vector, using " " as a delimiter.
 /// @param input
 /// @return tokens
-vector<string> splitString(string &input);
+vector<string> split_string(string &input);
 
 /// Parses meaning of state received in commands 'list' and 'myevents'
 /// @param state 
 /// @return state of event
-string resolveState(string state);
+string resolve_state(string state);
 
 /// Trims newline from end of string
 /// @param s 

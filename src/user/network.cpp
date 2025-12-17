@@ -63,12 +63,6 @@ string connect_UDP(char *ip_address, char *port, string msg)
         exit(-1);
     }
 
-    n = write(1, buffer, n); // só para testar
-    if (n == -1)
-    {
-        cout << "Error writing message from UDP server.\n";
-        exit(-1);
-    }
     string response(buffer, n);
 
     freeaddrinfo(res);

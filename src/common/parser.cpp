@@ -10,7 +10,7 @@
 
 using namespace std;
 
-Command_Options resolveCommand(string command)
+Command_Options resolve_command(string command)
 {
     if (command == "login")
         return login;
@@ -40,7 +40,7 @@ Command_Options resolveCommand(string command)
     return invalid_command;
 }
 
-vector<string> splitString(string &input)
+vector<string> split_string(string &input)
 {
     istringstream stream(input);
     vector<string> tokens;
@@ -54,14 +54,14 @@ vector<string> splitString(string &input)
     return tokens;
 }
 
-string resolveState(string state) 
+string resolve_state(string state) 
 {
     switch(stoi(state)) 
     {
-        case 0: return "event has already happened";
-        case 1: return "still accepting reservations";
-        case 2: return "event has sold out all its seats";
-        case 3: return "closed";
+        case 0: return "Event has already happened";
+        case 1: return "Still accepting reservations";
+        case 2: return "Event has sold out all its seats";
+        case 3: return "Closed";
     }
     return "invalid state";
 }

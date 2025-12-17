@@ -33,14 +33,14 @@ void handle_ip_port(int argc, char **argv)
         strcpy(port, "58000");
     }
     // Use IP and port values given by user
-    else if (argc == 3)
+    else if (argc == 5 && !strcmp(argv[1], "-n") && !strcmp(argv[3], "-p"))
     {
-        strcpy(ip_address, argv[1]);
-        strcpy(port, argv[2]);
+        strcpy(ip_address, argv[2]);
+        strcpy(port, argv[4]);
     }
     else
     {
-        cout << "Incorrect number of arguments. Usage: ./user [-n ESIP] [-p ESport]\n\n";
+        cout << "Incorrect number of arguments.\nUsage: ./user [-n ESIP] [-p ESport]\n\n";
         exit(1);
     }
 
@@ -48,18 +48,6 @@ void handle_ip_port(int argc, char **argv)
 }
 
 /// o user tem de verificar os replies do server?
-/// gostaria de mudar as mensagens para inglês
-///  (O QUE SAO LETRAS UNCLUI SO ASCII)??
-/// nao se encontra ativa parece que a conta foi desativada
-/// lembrar de verificafr o primeira parte da mensagem de status devido a receber ERR
-/// seria boa ideia meter id do user na mensagem stdout
-/// status tambem podem ter ERR
-/*
-The filenames Fname, are limited to a total of 24 alphanumerical characters (plus ‘-‘, ‘_’
-and ‘.’), including the separating dot and the 3-letter extension: “nnn…nnnn.xxx”.
-The file size Fsize is limited to 10 MB (10.106 B), being transmitted using a maximum
-of 8 digits*/
-/// create new event requer nome (alphanumerical numbers), file , date representado por dd-mm-yyyy hh:mm e number available seats (10 < seats < 999)
 /// reserve n tem de ser menor ou igual ao available seats
 /// ver quem indentifica os erros USER OU SERVER
 /// server ve a lista de as reservas mais recentes 50 max
@@ -109,7 +97,7 @@ void handle_login(vector<string> tokens)
     msg = "LIN " + tokens[1] + " " + tokens[2] + '\n';
     response = connect_UDP(ip_address, port, msg);
 
-    divided_response = splitString(response);
+    divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
     status =  trim(divided_response[1]);
 
@@ -168,6 +156,11 @@ void handle_changePass(vector<string> tokens)
         cout << "Incorrect number of arguments.\nUsage: changePass [oldPassword] [newPassword]\n\n";
         return;
     }
+    if (!logged_in)
+    {
+        cout << "You can't change your password without logging in first.\n\n";
+        return;
+    }
     else if (!check_size_password(tokens[1]))
     {
         cout << "Old password must have exactly 8 characters.\n\n";
@@ -193,7 +186,7 @@ void handle_changePass(vector<string> tokens)
     msg = "CPS " + curr_user + tokens[1] + " " + tokens[2] + '\n';
     response = connect_TCP(ip_address, port, msg);
 
-    divided_response = splitString(response);
+    divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
     status =  trim(divided_response[1]);
 
@@ -252,12 +245,17 @@ void handle_unregister(vector<string> tokens)
         cout << "Incorrect number of arguments.\nUsage: unregister\n\n";
         return;
     }
-    // Establish UDP connection
+    if (!logged_in)
+    {
+        cout << "You can't unregister without logging in first.\n\n";
+        return;
+    }
 
+    // Establish UDP connection    
     msg = "UNR " + curr_user + " " + curr_pass + '\n';
     response = connect_UDP(ip_address, port, msg);
 
-    divided_response = splitString(response);
+    divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
     status =  trim(divided_response[1]);
 
@@ -319,12 +317,17 @@ void handle_logout(vector<string> tokens)
         cout << "Incorrect number of arguments.\nUsage: logout\n\n";
         return;
     }
+    if (!logged_in)
+    {
+        cout << "You can't logout without logging in first.\n\n";
+        return;
+    }
 
     // Establish UDP connection
     msg = "LOU " + curr_user + " " + curr_pass + '\n';
     response = connect_UDP(ip_address, port, msg);
 
-    divided_response = splitString(response);
+    divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
     status =  trim(divided_response[1]);
 
@@ -385,7 +388,10 @@ bool handle_exit_user(vector<string> tokens)
 }
 
 /**
- * Create command.
+ * Command: create name event_fname event_date attendance_size
+ * Client message: CRE UID password name event_date attendance_size Fname Fsize Fdata
+ * TCP server message: RCE status [EID]
+ * 
  * OK - event created successfully
  * NOK - event could not be created
  * NLG - user was not logged in
@@ -402,22 +408,43 @@ void handle_create(vector<string> tokens)
         cout << "Incorrect number of arguments.\nUsage: create [name] [event_fname] [event_date] [num_attendees]\n\n";
         return;
     }
-    else if (!check_size_event_name(tokens[1]))
+    if (!logged_in)
     {
-        cout << "Name of event must have exactly 10 characters.\n\n";
+        cout << "You can't create an event without logging in first.\n\n";
         return;
     }
-    else if (!check_only_alphanumerical(tokens[1]))
+    if (!check_size_event_name(tokens[1]))
+    {
+        cout << "Name of event must have exactly 10 alphanumeric characters.\n\n";
+        return;
+    }
+    if (!check_only_alphanumerical(tokens[1]))
     {
         cout << "Name of event must have only alphanumeric characters.\n\n";
         return;
     }
-    else if (!check_only_digits(tokens[5]) || stoi(tokens[5]) < 10 || stoi(tokens[5]) > 99)
+    if (!check_date(tokens[3]))
     {
-        cout << "Number of seats in event must be a number between 10 and 999.\n\n";
+        cout << "Date of event is not in a valid format.\nIt must be in this format: dd-mm-yyyy";
         return;
     }
-    else if (!check_size_file_name(tokens[2]) || !check_file_name(tokens[2]))
+    if (!check_hour(tokens[4]))
+    {
+        cout << "Hour of event is not in a valid format.\nIt must be in this format: hh:mm";
+        return;
+    }
+    string full_date = tokens[3] + ' ' + tokens[4];
+    if (!check_future_date(full_date))
+    {
+        cout << "Date of event must be in the future.\n\n";
+        return;
+    }
+    if (!check_only_digits(tokens[5]) || stoi(tokens[5]) < 10 || stoi(tokens[5]) > 999)
+    {
+        cout << tokens[5] << "Number of seats in event must be a number between 10 and 999.\n\n";
+        return;
+    }
+    if (!check_size_file_name(tokens[2]) || !check_file_name(tokens[2]))
     {
         cout << "Name of event file is not valid.\n\n";
         return;
@@ -428,7 +455,6 @@ void handle_create(vector<string> tokens)
         cout << "Could not open or read the file's content.\n\n";
         return;
     }
-
     if(!check_size_file(file_size))
     {
         cout << "File is too large to be sent.\n\n";
@@ -441,7 +467,7 @@ void handle_create(vector<string> tokens)
           tokens[2] + " " + to_string(file_size) + " " + file_content + '\n';
     response = connect_TCP(ip_address, port, msg);
 
-    divided_response = splitString(response);
+    divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
     status =  trim(divided_response[1]);
 
@@ -495,6 +521,11 @@ void handle_close_event(vector<string> tokens)
         cout << "Incorrect number of arguments.\nUsage: close [EventID]\n\n";
         return;
     }
+    if (!logged_in)
+    {
+        cout << "You can't close an event without logging in first.\n\n";
+        return;
+    }
     else if (!check_size_eid(tokens[1]))
     {
         cout << "EventID must have exactly 3 digits.\n\n";
@@ -510,7 +541,7 @@ void handle_close_event(vector<string> tokens)
     msg = "CLS " + curr_user + " " + curr_pass + " " + tokens[1] + '\n';
     response = connect_TCP(ip_address, port, msg);
 
-    divided_response = splitString(response);
+    divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
     status =  trim(divided_response[1]);
 
@@ -555,9 +586,9 @@ void handle_close_event(vector<string> tokens)
         cout << "Event has already happened.\n\n";
         return;
     }
-    else if (status == "CLS")
+    else if (status == "CLO")
     {
-        cout << "Event had already been closed before.\n\n";
+        cout << "Event has already been closed.\n\n";
         return;
     }
     else if (status == "ERR")
@@ -580,9 +611,15 @@ void handle_myevents(vector<string> tokens)
     size_t response_size;
     string response, msg, status, reply_command;
     vector<string> divided_response;
+
     if (tokens.size() != 1)
     {
         cout << "Incorrect number of arguments.\nUsage: myevents OR mye\n\n";
+        return;
+    }
+    if (!logged_in)
+    {
+        cout << "You can't check your events without logging in first.\n\n";
         return;
     }
 
@@ -590,7 +627,7 @@ void handle_myevents(vector<string> tokens)
     msg = "LME " + curr_user + " " + curr_pass + '\n';
     response = connect_UDP(ip_address, port, msg);
 
-    divided_response = splitString(response);
+    divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
     status =  trim(divided_response[1]);
 
@@ -607,7 +644,7 @@ void handle_myevents(vector<string> tokens)
         cout << "Your events:\n";
         for (int i = 2; (size_t)i < response_size; i += 2)
         {
-            cout << "-> Event " + divided_response[i] + ": " + resolveState(divided_response[i + 1]) + ".\n";
+            cout << "-> Event " + divided_response[i] + ": " + resolve_state(divided_response[i + 1]) + ".\n";
         }
         cout << "Here are all of your events!\n\n";
         return;
@@ -656,7 +693,7 @@ void handle_list(vector<string> tokens)
     msg = "LST\n";
     response = connect_TCP(ip_address, port, msg);
 
-    divided_response = splitString(response);
+    divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
     status =  trim(divided_response[1]);
 
@@ -673,8 +710,9 @@ void handle_list(vector<string> tokens)
         response_size = divided_response.size();
         for (int i = 2; (size_t)i < response_size; i += 5)
         {
-            cout << "-> Event " + divided_response[i + 1] + " (ID: " + divided_response[i] + "): " + resolveState(divided_response[i + 2]) + 
-                    "\n   (Event's date: " + divided_response[i + 3] + " " + trim(divided_response[i + 4]) + ")\n";
+            cout << "-> Event " + divided_response[i + 1] + " (ID " + divided_response[i] + "): " + 
+                        resolve_state(divided_response[i + 2]) + "\n   (Event's date: " + 
+                        divided_response[i + 3] + " " + trim(divided_response[i + 4]) + ")\n";
         }
         cout << "Full Events List!\n\n";
         return;
@@ -727,7 +765,7 @@ void handle_show(vector<string> tokens)
     {
         divided_response = extract_file_data(response, 0);
         file_data = divided_response[1];
-        divided_data = splitString(file_data);
+        divided_data = split_string(file_data);
         file_size = stoull(divided_data[7]);
 
         file_content = trim(divided_response[2]);
@@ -743,7 +781,7 @@ void handle_show(vector<string> tokens)
         return;
     }
 
-    divided_response = splitString(response);
+    divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
     status =  trim(divided_response[1]);
 
@@ -788,6 +826,11 @@ void handle_reserve(vector<string> tokens)
         cout << "Incorrect number of arguments.\nUsage: reserve [EventID] [value]\n\n";
         return;
     }
+    if (!logged_in)
+    {
+        cout << "You can't make a reservation without logging in first.\n\n";
+        return;
+    }
     else if (!check_size_eid(tokens[1]))
     {
         cout << "EventID must have exactly 3 digits.\n\n";
@@ -800,7 +843,7 @@ void handle_reserve(vector<string> tokens)
     }
     else if (!check_only_digits(tokens[2]) || stoi(tokens[2]) < 1 || stoi(tokens[2]) > 999)
     {
-        cout << "Number of seats in event must be a number between 10 and 999.\n\n";
+        cout << "Can only make a reservation with a number of seats between 1 and 999.\n\n";
         return;
     }
 
@@ -808,7 +851,7 @@ void handle_reserve(vector<string> tokens)
     msg = "RID " + curr_user + " " + curr_pass + " " + tokens[1] + " " + tokens[2] + '\n';
     response = connect_TCP(ip_address, port, msg);
 
-    divided_response = splitString(response);
+    divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
     status =  trim(divided_response[1]);
 
@@ -852,7 +895,7 @@ void handle_reserve(vector<string> tokens)
     else if (status == "REJ")
     {
         remaining_seats = trim(divided_response[2]);
-        cout << "The reservation was rejected.\n The number of requested places, " +
+        cout << "The reservation was rejected.\nThe number of requested places, " +
                     tokens[2] + ", is larger than the number of remaining places, which is " +
                     remaining_seats + ".\n\n";
         return;
@@ -887,12 +930,17 @@ void handle_myreservations(vector<string> tokens)
         cout << "Incorrect number of arguments.\nUsage: myreservations OR myr\n\n";
         return;
     }
+    if (!logged_in)
+    {
+        cout << "You can't check your reserations without logging in first.\n\n";
+        return;
+    }
 
     // Establish UDP connection
     msg = "LMR " + curr_user + " " + curr_pass + '\n';
     response = connect_UDP(ip_address, port, msg);
 
-    divided_response = splitString(response);
+    divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
     status =  trim(divided_response[1]);
 
@@ -910,7 +958,7 @@ void handle_myreservations(vector<string> tokens)
         for (int i = 2; (size_t)i < response_size; i += 4)
         {
             cout << "-> Reservation for event " + divided_response[i] + ": " + trim(divided_response[i + 3]) + " seats reserved.\n"
-                    + "   (Reservation made at date " + divided_response[i + 1] + " " + divided_response[i + 2] + ")\n";
+                    + "   (Reserved at date " + divided_response[i + 1] + " " + divided_response[i + 2] + ")\n";
         }
         cout << "Remember, only the most recent 50 reservations are shown!\n\n";
         return;

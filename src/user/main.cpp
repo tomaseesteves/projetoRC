@@ -30,11 +30,11 @@ int main(int argc, char **argv)
     {
         // Read input from user and extract first word
         getline(cin, input);
-        tokens = splitString(input);
+        tokens = split_string(input);
         if (tokens.empty()) continue;
         command = tokens[0];
 
-        switch (resolveCommand(command))
+        switch (resolve_command(command))
         {
         case login:
         { 

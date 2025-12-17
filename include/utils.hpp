@@ -33,6 +33,11 @@ bool check_size_event_name(string &s);
 /// @return bool
 bool check_size_file(int file_size);
 
+/// Checks if file's size has less than 8 digits
+/// @param s 
+/// @return bool
+bool check_number_digits_file_size(string &s);
+
 /// Checks if the string only contains digits
 /// @param s
 /// @return bool
@@ -48,7 +53,18 @@ bool check_only_alphanumerical(string &s);
 /// @return bool
 bool check_date(string &s);
 
+/// Checks if hour is valid
+/// @param s
+/// @return bool
+bool check_hour(string &s);
+
+/// Checks if date is in the future
+/// @param s
+/// @return bool
+bool check_future_date(string &s);
+
 /// Checks if file name only contains alphanumerics, dots or underscores
+/// and if it has a valid file extension
 /// @param s
 /// @return bool
 bool check_file_name(string &s);

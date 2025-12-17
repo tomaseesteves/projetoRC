@@ -40,12 +40,17 @@ bool check_size_file_name(string &s)
 
 bool check_size_event_name(string &s)
 {
-    return s.size() <= 10;
+    return check_only_alphanumerical(s) && s.size() <= 10;
 }
 
 bool check_size_file(int file_size)
 {
     return file_size < MAX_FILE_SIZE;
+}
+
+bool check_number_digits_file_size(string &s)
+{
+    return s.size() <= 8;
 }
 
 bool check_only_digits(string &s)
@@ -85,6 +90,35 @@ bool check_date(string &s)
     }
 
     return true;
+}
+
+bool check_hour(string &s)
+{
+    tm tm = {};
+    istringstream ss(s);
+
+    ss >> get_time(&tm, "%H:%M");
+
+    if (ss.fail())
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool check_future_date(string &s)
+{
+    tm tm = {};
+    time_t given_time;
+
+    time_t now = time(&now);
+
+    istringstream ss(s);
+    ss >> get_time(&tm, "%d-%m-%Y %H:%M");
+    given_time = mktime(&tm);
+
+    return difftime(given_time,now) > 0;
 }
 
 bool check_file_name(string &s)

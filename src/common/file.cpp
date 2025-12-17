@@ -10,7 +10,6 @@ using namespace std;
 bool extract_file(string file_name, string& file_content, int& file_size)
 {
     ifstream file(file_name, ios::binary);
-    cout << filesystem::current_path() << "- OPEN FILE\n";
 
     if (!file.is_open())
     {

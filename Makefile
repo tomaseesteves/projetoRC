@@ -11,10 +11,10 @@ bin:
 
 user: 
 	$(CC) $(CCFLAGS) ./src/user/main.cpp ./src/user/network.cpp ./src/common/parser.cpp \
-	./src/user/protocol.cpp ./src/common/utils.cpp ./src/common/file.cpp  -o ./bin/user
+	./src/user/protocol.cpp ./src/common/utils.cpp ./src/common/file.cpp  -o ./user
 
 clean: 
-	rm -r bin
+	rm -r user
 
 run: 
-	./bin/user
+	./user
