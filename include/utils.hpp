@@ -29,7 +29,7 @@ bool check_size_file_name(string &s);
 bool check_size_event_name(string &s);
 
 /// Checks a file's size
-/// @param file_size 
+/// @param file_size
 /// @return bool
 bool check_size_file(int file_size);
 
@@ -52,5 +52,9 @@ bool check_date(string &s);
 /// @param s
 /// @return bool
 bool check_file_name(string &s);
+
+bool check_is_future_time(string &s, string &s2);
+
+bool check_hour(string &s);
 
 #endif

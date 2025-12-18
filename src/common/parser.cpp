@@ -40,6 +40,34 @@ Command_Options resolveCommand(string command)
     return invalid_command;
 }
 
+Command_Options resolveServerRequest(string command)
+{
+    if (command == "LIN")
+        return login;
+    if (command == "")
+        return changePass;
+    if (command == "UNR")
+        return unregister;
+    if (command == "LOU")
+        return logout;
+    if (command == "CRE")
+        return create;
+    if (command == "CLS")
+        return close_event;
+    if (command == "LME")
+        return myevents;
+    if (command == "LST")
+        return list;
+    if (command == "SED")
+        return show;
+    if (command == "RID")
+        return reserve;
+    if (command == "LMR")
+        return myreservations;
+
+    return invalid_command;
+}
+
 vector<string> splitString(string &input)
 {
     istringstream stream(input);
@@ -54,22 +82,27 @@ vector<string> splitString(string &input)
     return tokens;
 }
 
-string resolveState(string state) 
+string resolveState(string state)
 {
-    switch(stoi(state)) 
+    switch (stoi(state))
     {
-        case 0: return "event has already happened";
-        case 1: return "still accepting reservations";
-        case 2: return "event has sold out all its seats";
-        case 3: return "closed";
+    case 0:
+        return "event has already happened";
+    case 1:
+        return "still accepting reservations";
+    case 2:
+        return "event has sold out all its seats";
+    case 3:
+        return "closed";
     }
     return "invalid state";
 }
 
-string trim(string &s) 
+string trim(string &s)
 {
-    while (!s.empty() && (s[s.length()-1] == '\n' || s[s.length()-1] == '\r')) {
-        s.erase(s.length()-1);
+    while (!s.empty() && (s[s.length() - 1] == '\n' || s[s.length() - 1] == '\r'))
+    {
+        s.erase(s.length() - 1);
     }
     return s;
 }
@@ -80,7 +113,8 @@ size_t split_nth_space(string &s, int n)
     while (n-- > 0)
     {
         pos = s.find(' ', pos + 1);
-        if (pos == string::npos) break;
+        if (pos == string::npos)
+            break;
     }
     return pos;
 }
@@ -92,7 +126,7 @@ vector<string> extract_file_data(string &s, int command_flag)
     size_t second_split = -1;
 
     // If given string corresponds to a Create command
-    if(command_flag)
+    if (command_flag)
     {
         first_split = split_nth_space(s, 3);
         second_split = split_nth_space(s, 9);

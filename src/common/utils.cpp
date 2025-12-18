@@ -87,10 +87,14 @@ bool check_date(string &s)
     return true;
 }
 
+bool check_hour(string &s);
+
+bool check_is_future_time(string &s, string &s2);
+
 bool check_file_name(string &s)
 {
     // Find last occurence of '.'
-    const char* dot = strrchr(s.c_str(), '.');
+    const char *dot = strrchr(s.c_str(), '.');
 
     // check for valid extension?
     if (!dot || strlen(dot) != 4)

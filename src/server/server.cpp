@@ -14,97 +14,84 @@
 #include <signal.h>
 #define MYPORT "58000"
 
+#include <protocol.hpp>
+#include <parser.hpp>
+#include <vector>
+#include <string>
 
-int main(void)
+using namespace std;
+
+int main(int argc, char **argv)
 {
-    char in_str[128];
-
-    fd_set inputs, testfds;
-    struct timeval timeout;
-
-    int i,out_fds,n,errcode, ret;
-
-    char prt_str[90];
-
-
-// socket variables
-    struct addrinfo hints, *res;
-    struct sockaddr_in udp_useraddr;
-    socklen_t addrlen;
-    int ufd;
-
-    char host[NI_MAXHOST], service[NI_MAXSERV];
-
-
-// UDP SERVER SECTION
-    memset(&hints,0,sizeof(hints));
-    hints.ai_family=AF_INET;
-    hints.ai_socktype=SOCK_DGRAM;
-    hints.ai_flags=AI_PASSIVE|AI_NUMERICSERV;
-
-    if((errcode=getaddrinfo(NULL,MYPORT,&hints,&res))!=0)
-        exit(1);// On error
-
-    ufd=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
-    if(ufd==-1)
-        exit(1);
-
-    if(bind(ufd,res->ai_addr,res->ai_addrlen)==-1)
+    string s, msg;
+    vector<string> request;
+    request = splitString(s);
+    handle_ip_port(argc, argv);
+    while (true)
     {
-        sprintf(prt_str,"Bind error UDP server\n");
-        write(1,prt_str,strlen(prt_str));
-        exit(1);// On error
-    }
-    if(res!=NULL)
-        freeaddrinfo(res);
-
-    FD_ZERO(&inputs); // Clear input mask
-    FD_SET(0,&inputs); // Set standard input channel on
-    FD_SET(ufd,&inputs); // Set UDP channel on
-
-//    printf("Size of fd_set: %d\n",sizeof(fd_set));
-//    printf("Value of FD_SETSIZE: %d\n",FD_SETSIZE);
-
-    while(1)
-    {
-        testfds=inputs; // Reload mask
-//        printf("testfds byte: %d\n",((char *)&testfds)[0]); // Debug
-        memset((void *)&timeout,0,sizeof(timeout));
-        timeout.tv_sec=10;
-
-        out_fds=select(FD_SETSIZE,&testfds,(fd_set *)NULL,(fd_set *)NULL,(struct timeval *) &timeout);
-// testfds is now '1' at the positions that were activated
-//        printf("testfds byte: %d\n",((char *)&testfds)[0]); // Debug
-        switch(out_fds)
+        switch (resolveServerRequest(1))
         {
-            case 0:
-                printf("\n ---------------Timeout event-----------------\n");
-                break;
-            case -1:
-                perror("select");
-                exit(1);
-            default:
-                if(FD_ISSET(0,&testfds))
-                {
-                    fgets(in_str,50,stdin);
-                    printf("---Input at keyboard: %s\n",in_str);
-                }
-                if(FD_ISSET(ufd,&testfds))
-                {
-                    addrlen = sizeof(udp_useraddr);
-                    ret=recvfrom(ufd,prt_str,80,0,(struct sockaddr *)&udp_useraddr,&addrlen);
-                    if(ret>=0)
-                    {
-                        if(strlen(prt_str)>0)
-                            prt_str[ret-1]=0;
-                        printf("---UDP socket: %s\n",prt_str);
-                        errcode=getnameinfo( (struct sockaddr *) &udp_useraddr,addrlen,host,sizeof host, service,sizeof service,0);
-                        if(errcode==0)
-                            printf("       Sent by [%s:%s]\n",host,service);
-
-                    }
-                }
+        case login:
+        {
+            msg = handle_login(request);
+            break;
+        }
+        case changePass:
+        {
+            msg = handle_changePass(request);
+            break;
+        }
+        case unregister:
+        {
+            msg = handle_unregister(request);
+            break;
+        }
+        case logout:
+        {
+            msg = handle_logout(request);
+            break;
+        }
+        case create:
+        {
+            msg = handle_create(request);
+            break;
+        }
+        case close_event:
+        {
+            msg = handle_close_event(request);
+            break;
+        }
+        case myevents:
+        {
+            msg = handle_myevents(request);
+            break;
+        }
+        case list:
+        {
+            msg = handle_list(request);
+            break;
+        }
+        case show:
+        {
+            msg = handle_show(request);
+            break;
+        }
+        case reserve:
+        {
+            msg = handle_reserve(request);
+            break;
+        }
+        case myreservations:
+        {
+            msg = handle_myreservations(request);
+            break;
+        }
+        case invalid_command:
+        {
+            msg = "ERR\n";
+            break;
+        }
         }
     }
+    return 0;
 }
-
