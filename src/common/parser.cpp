@@ -54,22 +54,55 @@ vector<string> split_string(string &input)
     return tokens;
 }
 
-string resolve_state(string state) 
+string resolve_state(string state)
 {
-    switch(stoi(state)) 
+    switch (stoi(state))
     {
-        case 0: return "Event has already happened";
-        case 1: return "Still accepting reservations";
-        case 2: return "Event has sold out all its seats";
-        case 3: return "Closed";
+    case 0:
+        return "Event has already happened";
+    case 1:
+        return "Still accepting reservations";
+    case 2:
+        return "Event has sold out all its seats";
+    case 3:
+        return "Closed";
     }
     return "invalid state";
 }
 
-string trim(string &s) 
+Command_Options resolveServerRequest(string command)
 {
-    while (!s.empty() && (s[s.length()-1] == '\n' || s[s.length()-1] == '\r')) {
-        s.erase(s.length()-1);
+    if (command == "LIN")
+        return login;
+    if (command == "")
+        return changePass;
+    if (command == "UNR")
+        return unregister;
+    if (command == "LOU")
+        return logout;
+    if (command == "CRE")
+        return create;
+    if (command == "CLS")
+        return close_event;
+    if (command == "LME")
+        return myevents;
+    if (command == "LST")
+        return list;
+    if (command == "SED")
+        return show;
+    if (command == "RID")
+        return reserve;
+    if (command == "LMR")
+        return myreservations;
+
+    return invalid_command;
+}
+
+string trim(string &s)
+{
+    while (!s.empty() && (s[s.length() - 1] == '\n' || s[s.length() - 1] == '\r'))
+    {
+        s.erase(s.length() - 1);
     }
     return s;
 }
@@ -80,7 +113,8 @@ size_t split_nth_space(string &s, int n)
     while (n-- > 0)
     {
         pos = s.find(' ', pos + 1);
-        if (pos == string::npos) break;
+        if (pos == string::npos)
+            break;
     }
     return pos;
 }
@@ -92,7 +126,7 @@ vector<string> extract_file_data(string &s, int create_flag)
     size_t second_split = -1;
 
     // If given string corresponds to a Create command
-    if(create_flag)
+    if (create_flag)
     {
         first_split = split_nth_space(s, 3);
         second_split = split_nth_space(s, 9);
