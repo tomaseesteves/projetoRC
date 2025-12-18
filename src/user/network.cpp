@@ -73,7 +73,7 @@ string connect_UDP(char *ip_address, char *port, string msg)
 
 string connect_TCP(char *ip_address, char *port, string msg)
 {
-    int msg_len = msg.length();
+    size_t msg_len = (size_t)msg.length();
     char buffer[MAX_STRING];
     string response;
     
@@ -97,7 +97,7 @@ string connect_TCP(char *ip_address, char *port, string msg)
     }
     
     ssize_t n = connect(fd, res->ai_addr, res->ai_addrlen);
-    ssize_t total_bytes = 0;
+    size_t total_bytes = 0;
     if (n == -1)
     {
         cout << "Error establishing TCP connection.\n";
@@ -165,9 +165,6 @@ string connect_TCP(char *ip_address, char *port, string msg)
             break;
         }
     }
-    
-
-    //cout << response; //so para testar
 
     freeaddrinfo(res);
     close(fd);
