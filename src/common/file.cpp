@@ -16,8 +16,6 @@ bool extract_file(string file_name, string& file_content, int& file_size)
         return false;
     }
     file_size = filesystem::file_size(file_name);
-    
-    cout << "- FILE SIZE" << file_size << '\n';
     file_content.resize(file_size);
  
     if (!file.read(&file_content[0], file_size))

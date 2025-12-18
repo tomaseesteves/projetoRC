@@ -51,7 +51,7 @@ string connect_UDP(char *ip_address, char *port, string msg)
     if (n == -1)
     {
         cout << "Error sending message to UDP server.\n";
-        exit(-1);
+        exit(1);
     }
     
     addrlen = sizeof(addr);
@@ -60,7 +60,7 @@ string connect_UDP(char *ip_address, char *port, string msg)
     if (n == -1)
     {
         cout << "Error receiving message from UDP server.\n";
-        exit(-1);
+        exit(1);
     }
 
     string response(buffer, n);
@@ -134,19 +134,24 @@ string connect_TCP(char *ip_address, char *port, string msg)
         {
             istringstream iss(response);
             string tag, status, userID, name, event_date, event_hour,
-                attendance_size, seats_reserved, file_name, file_size;
+                   attendance_size, seats_reserved, file_name;
+            size_t file_size;
  
             if (iss >> tag >> status >> userID >> name >> event_date >> event_hour
                 >> attendance_size >> seats_reserved >> file_name >> file_size)
             {
-                size_t already_read = response.size() - iss.tellg();
+                streampos header_end = iss.tellg();
+                if (header_end == -1) 
+                {
+                    exit(1);
+                }
+                size_t already_read = response.size() - (size_t)header_end;
 
-                while (already_read < (size_t)stoi(file_size))
+                while (already_read < file_size)
                 {
                     ssize_t m = read(fd, buffer, sizeof(buffer));
                     if (m <= 0)
                     {
-                        perror("read");
                         exit(1);
                     }
                     response.append(buffer, m);
