@@ -1,2 +1,4 @@
 .vscode
 bin
+/SCRIPTS_25-26
+run_tests_visual.sh

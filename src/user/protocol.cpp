@@ -578,12 +578,12 @@ void handle_close_event(vector<string> tokens)
     }
     else if (status == "SLD")
     {
-        cout << "Event is currently sold out.\n\n";
+        cout << "Coud not close event. Event is currently sold out.\n\n";
         return;
     }
     else if (status == "PST")
     {
-        cout << "Event has already happened.\n\n";
+        cout << "Coud not close event. Event has already happened.\n\n";
         return;
     }
     else if (status == "CLO")
