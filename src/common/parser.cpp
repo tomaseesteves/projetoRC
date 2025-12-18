@@ -85,14 +85,14 @@ size_t split_nth_space(string &s, int n)
     return pos;
 }
 
-vector<string> extract_file_data(string &s, int command_flag)
+vector<string> extract_file_data(string &s, int create_flag)
 {
     vector<string> tokens;
     size_t first_split = -1;
     size_t second_split = -1;
 
     // If given string corresponds to a Create command
-    if(command_flag)
+    if(create_flag)
     {
         first_split = split_nth_space(s, 3);
         second_split = split_nth_space(s, 9);
