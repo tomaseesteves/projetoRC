@@ -5,6 +5,14 @@
 
 using namespace std;
 
+struct Reservation
+{
+    string event_id;
+    string date_str; // for printing: dd-mm-YYYY HH:MM:SS
+    string date_key; // for sorting: YYYYmmdd_HHMMSS
+    string num_seats;
+};
+
 /// Return path to user directory
 /// @param UID
 /// @return string
@@ -65,5 +73,10 @@ string give_event_end_file(string EID);
 /// @param EID
 /// @return
 string give_event_reservations_dir(string EID);
+
+/// Sort user reservations, first by date descending, then by eid
+/// @param r 
+/// @return string of sorted reservations
+string sort_reservations(vector<Reservation> r);
 
 #endif

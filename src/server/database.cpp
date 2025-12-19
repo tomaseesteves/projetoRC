@@ -26,6 +26,7 @@
 #include <parser.hpp>
 #include <database.hpp>
 #include <database_utils.hpp>
+#include <algorithm>
 
 using namespace std;
 
@@ -278,6 +279,7 @@ string get_user_events(string uid)
            eid, user_events = "", event_path_available, spaces_left,
            status, event_path_end, event_path_start, date,
            start_content;
+    vector<string> divided_res;
     int start_size;
     DIR *dir = opendir(created_path.c_str());
     struct dirent *entry;
@@ -318,9 +320,16 @@ string get_user_events(string uid)
         {
             status = "1"; // Event is still accepting reservations
         }
-        user_events += ' ' + eid + ' ' + status;
+        divided_res.push_back(' ' + eid + ' ' + status);
     }
     closedir(dir);
+    
+    // Sort and form full response
+    sort(divided_res.begin(), divided_res.end());
+    for (string res : divided_res)
+    {
+        user_events += res;
+    }
     return user_events;
 }
 
@@ -332,7 +341,7 @@ string create_event_dir(string uid, string event_name, string event_date,
            start_file, available_file, description_dir, description_file,
            reservations_dir, start_content;
     int highest_id = 1, fd;
-    char tmp[4];
+    char tmp[12];
 
     DIR *dir = opendir(all_events.c_str());
     struct dirent *entry;
@@ -414,6 +423,7 @@ string get_user_reservations(string user_id)
 {
     string user_res_dir = give_user_reserved_dir(user_id),
            reservation_content, response = "";
+    vector<Reservation> reservations;
     int file_size;
     DIR *dir = opendir(user_res_dir.c_str());
     struct dirent *entry;
@@ -423,23 +433,28 @@ string get_user_reservations(string user_id)
         if (strcmp(entry->d_name, ".") == 0 ||
             strcmp(entry->d_name, "..") == 0)
             continue;
-        string event_id = string(entry->d_name).substr(2, 3);
+
+        Reservation r;
+        r.event_id = string(entry->d_name).substr(2, 3);
+        r.date_key = string(entry->d_name).substr(6, 15);
+
         string full_path = user_res_dir + "/" + string(entry->d_name);
         extract_file(full_path, reservation_content, file_size);
         vector<string> divided_res = split_string(reservation_content);
-        string num_seats = divided_res[1];
-        string res_date = divided_res[2];
-        string res_hour = divided_res[3];
+        r.num_seats = divided_res[1];
+        r.date_str = divided_res[2] + " " + divided_res[3];
 
-        response += " " + event_id + " " + res_date + " " + res_hour + " " + num_seats;
+        reservations.push_back(r);
     }
     closedir(dir);
+    response = sort_reservations(reservations);
     return response;
 }
 
 string get_event_list()
 {
     string all_events = "ESDIR/EVENTS", response;
+    vector<string> divided_res;
     DIR *dir = opendir(all_events.c_str());
     struct dirent *entry;
 
@@ -483,9 +498,16 @@ string get_event_list()
         {
             status = "1"; // Event is still accepting reservations
         }
-        response += " " + event_id + " " + event_name + " " + status + " " + event_date;
+        divided_res.push_back(" " + event_id + " " + event_name + " " + status + " " + event_date);
     }
     closedir(dir);
+
+    // Sort and form full response
+    sort(divided_res.begin(), divided_res.end());
+    for (string res : divided_res)
+    {
+        response += res;
+    }
     return response;
 }
 

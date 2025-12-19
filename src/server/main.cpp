@@ -192,7 +192,7 @@ int main(int argc, char **argv)
                     FD_CLR(0, &inputs);
                 }
                 string response = handle_request(input);
-                cout << response;
+                cout << "Response: " + response << endl;
             }
             // UDP socket
             if (FD_ISSET(udp_fd, &testfds))
@@ -205,14 +205,14 @@ int main(int argc, char **argv)
                     cout << "Error receiving UDP client message.";
                 }
                 string udp_client_msg(buffer, n_udp);
-                cout << udp_client_msg;
+                cout << "Received UPD message: " + udp_client_msg;
                 string response = handle_request(udp_client_msg);
                 n_udp = sendto(udp_fd, response.c_str(), response.length(), 0, (struct sockaddr *)&udp_useraddr, addrlen);
                 if (n_udp == -1)
                 {
                     cout << "Error sending message to UDP client.";
                 }
-                cout << response;
+                cout << "Sending UDP message: " + response << endl;
             }
             // TCP listening socket
             if (FD_ISSET(tcp_fd, &testfds))
@@ -251,11 +251,13 @@ int main(int argc, char **argv)
 
                     if (tcp_message_complete(tcp_buffers[i]))
                     {
-                        cout << tcp_buffers[i];
+                        cout << "Receiving TCP message: " + tcp_buffers[i];
+
                         string response = handle_request(tcp_buffers[i]);
                         size_t sent_bytes = 0;
                         size_t response_len = response.length();
-
+                        
+                        cout << "Sending TCP message: " + response << endl; 
                         while (sent_bytes < response_len)
                         {
                             n_tcp = write(i, response.c_str() + sent_bytes, response_len - sent_bytes);

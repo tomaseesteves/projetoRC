@@ -33,6 +33,14 @@ void handle_ip_port(int argc, char **argv)
         strcpy(port, PORT);
     }
     // Use IP and port values given by user
+    else if (argc == 3 && !strcmp(argv[1], "-n"))
+    {
+        strcpy(ip_address, argv[2]);
+    }
+    else if (argc == 3 && !strcmp(argv[1], "-p"))
+    {
+        strcpy(port, argv[2]);
+    }
     else if (argc == 5 && !strcmp(argv[1], "-n") && !strcmp(argv[3], "-p"))
     {
         strcpy(ip_address, argv[2]);

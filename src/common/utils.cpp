@@ -82,6 +82,12 @@ bool check_date(string &s)
     tm tm = {};
     istringstream ss(s);
 
+    // Ensure proper padding
+    if (s.size() != 10 || s[2] != '-' || s[5] != '-')
+    {
+        return false;
+    }
+
     ss >> get_time(&tm, "%d-%m-%Y");
 
     if (ss.fail())
@@ -96,6 +102,12 @@ bool check_hour(string &s)
 {
     tm tm = {};
     istringstream ss(s);
+
+    // Ensure proper padding
+    if (s.size() != 5 || s[2] != ':')
+    {
+        return false;
+    }
 
     ss >> get_time(&tm, "%H:%M");
 
