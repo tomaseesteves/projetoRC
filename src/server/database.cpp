@@ -30,31 +30,29 @@
 
 using namespace std;
 
-/// ESCREVER EM CADA EXIT O PORQUE DE NAO CONSEGUIR
-/// nao deveria existir locks?
-/// ver o network user
-/// temos de por verificaçao de future events
-
 void create_data_base()
 {
-    if (mkdir("ESDIR", 0700) == -1)
+    if (mkdir("ESDIR", 0777) == -1)
     {
         if (errno != EEXIST)
         {
+            perror("Error making ESDIR\n");
             exit(1);
         }
     }
-    if (mkdir("ESDIR/USERS", 0700) == -1)
+    if (mkdir("ESDIR/USERS", 0777) == -1)
     {
         if (errno != EEXIST)
         {
+            perror("Error making USERS DIR\n");
             exit(1);
         }
     }
-    if (mkdir("ESDIR/EVENTS", 0700) == -1)
+    if (mkdir("ESDIR/EVENTS", 0777) == -1)
     {
         if (errno != EEXIST)
         {
+            perror("Error making EVENTS DIR\n");
             exit(1);
         }
     }
@@ -70,55 +68,62 @@ void create_user_dir(string uid, string password)
     int fd;
     ssize_t n;
     size_t pass_len = password.size(), total_bytes = 0;
-    if (mkdir(uid_dir.c_str(), 0700) == -1)
+    if (mkdir(uid_dir.c_str(), 0777) == -1)
     {
         if (errno != EEXIST)
         {
+            cout << "Error making USER " + uid + " DIR\n";
             exit(1);
         }
     }
-    if (mkdir(created.c_str(), 0700) == -1)
+    if (mkdir(created.c_str(), 0777) == -1)
     {
         if (errno != EEXIST)
         {
+            cout << "Error making USER " + uid + " CREATED DIR\n";
             exit(1);
         }
     }
-    if (mkdir(reserved.c_str(), 0700) == -1)
+    if (mkdir(reserved.c_str(), 0777) == -1)
     {
         if (errno != EEXIST)
         {
+            cout << "Error making USER " + uid + " RESERVED DIR\n";
             exit(1);
         }
     }
 
-    fd = open(pass.c_str(), O_WRONLY | O_CREAT, 0700);
+    fd = open(pass.c_str(), O_WRONLY | O_CREAT, 0777);
     if (fd == -1)
     {
+        cout << "Error opening USER " + uid + " PASS FILE\n";
         exit(1);
     }
     while (total_bytes < pass_len)
     {
         n = write(fd, password.c_str() + total_bytes, pass_len - total_bytes);
-        if (n <= 0)
+        if (n < 0)
         {
+            perror("write failed");
             exit(1);
         }
         total_bytes += n;
     }
 
     close(fd);
-    fd = open(login.c_str(), O_WRONLY | O_CREAT, 0700);
+    fd = open(login.c_str(), O_WRONLY | O_CREAT, 0777);
     if (fd == -1)
     {
+        cout << "Error opening USER " + uid + " LOGIN FILE\n";
         exit(1);
     }
     total_bytes = 0;
     while (total_bytes < 1)
     {
         n = write(fd, "1" + total_bytes, 1 - total_bytes);
-        if (n <= 0)
+        if (n < 0)
         {
+            perror("write failed");
             exit(1);
         }
         total_bytes += n;
@@ -132,16 +137,18 @@ void login_user(string uid)
     string login = give_user_login_file(uid);
     ssize_t n;
     size_t total_bytes = 0;
-    fd = open(login.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0700);
+    fd = open(login.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0777);
     if (fd == -1)
     {
+        cout << "Error opening USER " + uid + " LOGIN FILE\n";
         exit(1);
     }
     while (total_bytes < 1)
     {
         n = write(fd, "1" + total_bytes, 1 - total_bytes);
-        if (n <= 0)
+        if (n < 0)
         {
+            perror("write failed");
             exit(1);
         }
         total_bytes += n;
@@ -155,16 +162,18 @@ void logout_user(string uid)
     string login = give_user_login_file(uid);
     ssize_t n;
     size_t total_bytes = 0;
-    fd = open(login.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0700);
+    fd = open(login.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0777);
     if (fd == -1)
     {
+        cout << "Error opening USER " + uid + " LOGIN FILE\n";
         exit(1);
     }
     while (total_bytes < 1)
     {
         n = write(fd, "0" + total_bytes, 1 - total_bytes);
-        if (n <= 0)
+        if (n < 0)
         {
+            perror("write failed");
             exit(1);
         }
         total_bytes += n;
@@ -188,28 +197,13 @@ bool check_user_login(string uid)
 {
     string login = give_user_login_file(uid), login_content;
     int login_size;
-    extract_file(login, login_content, login_size);
-
-    return login_content == "1";
-    /*int fd = open(login.c_str(), O_RDONLY);
-    ssize_t n;
-    size_t total_bytes;
-    int buf[1];
-    if (fd == -1)
+    if (!extract_file(login, login_content, login_size))
     {
+        cout << "Error extracting file.\n";
         exit(1);
     }
-    while (total_bytes < 1)
-    {
-        n = read(fd, buf + total_bytes, 1 - total_bytes);
-        if (n <= 0)
-        {
-            exit(1);
-        }
-        total_bytes += n;
-    }
-    close(fd);
-    return buf[1] ? true : false;*/
+
+    return login_content == "1";
 }
 
 void erase_user_dir(string uid)
@@ -219,6 +213,7 @@ void erase_user_dir(string uid)
            login = give_user_login_file(uid);
     if (unlink(pass.c_str()) == -1 || unlink(login.c_str()))
     {
+        perror("failed to delete login or pass file");
         exit(1);
     }
 }
@@ -229,16 +224,18 @@ void change_pass(string uid, string password)
     string pass_path = give_user_password_file(uid);
     ssize_t n;
     size_t total_bytes = 0, pass_len = password.size();
-    fd = open(pass_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0700);
+    fd = open(pass_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0777);
     if (fd == -1)
     {
+        cout << "Error opening USER " + uid + " PASS FILE\n";
         exit(1);
     }
     while (total_bytes < pass_len)
     {
         n = write(fd, password.c_str() + total_bytes, pass_len - total_bytes);
-        if (n <= 0)
+        if (n < 0)
         {
+            perror("write failed");
             exit(1);
         }
         total_bytes += n;
@@ -250,26 +247,11 @@ string get_password(string uid)
 {
     string pass_path = give_user_password_file(uid), password;
     int pass_size;
-    extract_file(pass_path, password, pass_size);
-    /*int fd = open(pass_path.c_str(), O_RDONLY);
-    ssize_t n;
-    size_t total_bytes = 0;
-    string password;
-    if (fd == -1)
+    if (!extract_file(pass_path, password, pass_size))
     {
+        cout << "Error extracting file.\n";
         exit(1);
     }
-    while (total_bytes < 8)
-    {
-        n = read(fd, &password[total_bytes], 8 - total_bytes);
-        if (n <= 0)
-        {
-            exit(1);
-        }
-        total_bytes += n;
-    }
-    close(fd);
-    cout << password + "\n";*/
     return password;
 }
 
@@ -284,6 +266,12 @@ string get_user_events(string uid)
     DIR *dir = opendir(created_path.c_str());
     struct dirent *entry;
 
+    if (!dir)
+    {
+        perror("failed to open created user path dir\n");
+        exit(1);
+    }
+
     while ((entry = readdir(dir)) != NULL)
     {
         if (strcmp(entry->d_name, ".") == 0 ||
@@ -295,10 +283,18 @@ string get_user_events(string uid)
         event_path_end = give_event_end_file(eid);
         event_path_start = give_event_start_file(eid);
 
-        extract_file(event_path_start, start_content, start_size);
+        if (!extract_file(event_path_start, start_content, start_size))
+        {
+            cout << "Error extracting file.\n";
+            exit(1);
+        }
 
         // Extract START file content
-        extract_file(event_path_start, start_content, start_size);
+        if (!extract_file(event_path_start, start_content, start_size))
+        {
+            cout << "Error extracting file.\n";
+            exit(1);
+        }
         vector<string> divided_start_file = split_string(start_content);
         string event_date = divided_start_file[4] + " " + divided_start_file[5];
 
@@ -323,7 +319,7 @@ string get_user_events(string uid)
         divided_res.push_back(' ' + eid + ' ' + status);
     }
     closedir(dir);
-    
+
     // Sort and form full response
     sort(divided_res.begin(), divided_res.end());
     for (string res : divided_res)
@@ -345,6 +341,12 @@ string create_event_dir(string uid, string event_name, string event_date,
 
     DIR *dir = opendir(all_events.c_str());
     struct dirent *entry;
+
+    if (!dir)
+    {
+        perror("failed to open events dir\n");
+        exit(1);
+    }
 
     while ((entry = readdir(dir)) != NULL)
     {
@@ -372,18 +374,20 @@ string create_event_dir(string uid, string event_name, string event_date,
     reservations_dir = give_event_reservations_dir(event_id);
 
     // Create user file
-    fd = open(user_file.c_str(), O_WRONLY | O_CREAT, 0700);
+    fd = open(user_file.c_str(), O_WRONLY | O_CREAT, 0777);
     if (fd == -1)
     {
+        cout << "Error making USER " + uid + " CREATED DIR\n";
         exit(1);
     }
     close(fd);
 
     // Create event directory
-    if (mkdir(event_dir.c_str(), 0700) == -1)
+    if (mkdir(event_dir.c_str(), 0777) == -1)
     {
         if (errno != EEXIST)
         {
+            printf("Error making Event Dir\n");
             exit(1);
         }
     }
@@ -391,28 +395,42 @@ string create_event_dir(string uid, string event_name, string event_date,
     // Create START_(eid).txt file
     start_content = uid + " " + event_name + " " + file_name + " " +
                     attendance_size + " " + event_date;
-    save_event_file(start_file, start_content, (uint64_t)start_content.length());
+    if (!save_event_file(start_file, start_content, (uint64_t)start_content.length()))
+    {
+        cout << "Error saving file.\n";
+        exit(1);
+    }
 
     // Create RES_(eid).txt file
-    save_event_file(available_file, attendance_size, (uint64_t)attendance_size.length());
+    if (!save_event_file(available_file, attendance_size, (uint64_t)attendance_size.length()))
+    {
+        cout << "Error saving file.\n";
+        exit(1);
+    }
 
     // Create DESCRIPTION directory
-    if (mkdir(description_dir.c_str(), 0700) == -1)
+    if (mkdir(description_dir.c_str(), 0777) == -1)
     {
         if (errno != EEXIST)
         {
+            printf("Error making event description dir\n");
             exit(1);
         }
     }
 
     // Create event file given by client
-    save_event_file(description_file, file_content, stoull(file_size));
+    if (!save_event_file(description_file, file_content, stoull(file_size)))
+    {
+        cout << "Error saving file.\n";
+        exit(1);
+    }
 
     // Create RESERVATIONS directory
-    if (mkdir(reservations_dir.c_str(), 0700) == -1)
+    if (mkdir(reservations_dir.c_str(), 0777) == -1)
     {
         if (errno != EEXIST)
         {
+            printf("Error making event reservations dir\n");
             exit(1);
         }
     }
@@ -428,6 +446,12 @@ string get_user_reservations(string user_id)
     DIR *dir = opendir(user_res_dir.c_str());
     struct dirent *entry;
 
+    if (!dir)
+    {
+        perror("failed to open user reservations dir\n");
+        exit(1);
+    }
+
     while ((entry = readdir(dir)) != NULL)
     {
         if (strcmp(entry->d_name, ".") == 0 ||
@@ -439,7 +463,12 @@ string get_user_reservations(string user_id)
         r.date_key = string(entry->d_name).substr(6, 15);
 
         string full_path = user_res_dir + "/" + string(entry->d_name);
-        extract_file(full_path, reservation_content, file_size);
+
+        if (!extract_file(full_path, reservation_content, file_size))
+        {
+            cout << "Error extracting file.\n";
+            exit(1);
+        }
         vector<string> divided_res = split_string(reservation_content);
         r.num_seats = divided_res[1];
         r.date_str = divided_res[2] + " " + divided_res[3];
@@ -458,6 +487,12 @@ string get_event_list()
     DIR *dir = opendir(all_events.c_str());
     struct dirent *entry;
 
+    if (!dir)
+    {
+        perror("failed to open events dir\n");
+        exit(1);
+    }
+
     while ((entry = readdir(dir)) != NULL)
     {
         if (strcmp(entry->d_name, ".") == 0 ||
@@ -475,7 +510,11 @@ string get_event_list()
         // Extract START file content
         string start_content;
         int start_size;
-        extract_file(start_file, start_content, start_size);
+        if (!extract_file(start_file, start_content, start_size))
+        {
+            cout << "Error extracting file.\n";
+            exit(1);
+        }
         vector<string> divided_start_file = split_string(start_content);
         string event_date = divided_start_file[4] + " " + divided_start_file[5];
         string event_name = divided_start_file[1];
@@ -520,7 +559,11 @@ string get_event_info(string event_id)
            response;
     int start_size, available_size, file_size, num_seats_reserved = 0;
 
-    extract_file(start_file, start_content, start_size);
+    if (!extract_file(start_file, start_content, start_size))
+    {
+        cout << "Error extracting file.\n";
+        exit(1);
+    }
     vector<string> divided_start = split_string(start_content);
     string user_id = divided_start[0];
     string event_name = divided_start[1];
@@ -528,7 +571,11 @@ string get_event_info(string event_id)
     string file_name = divided_start[2];
     int attendance_size = stoi(divided_start[3]);
 
-    extract_file(available_file, available_content, available_size);
+    if (!extract_file(available_file, available_content, available_size))
+    {
+        cout << "Error extracting file.\n";
+        exit(1);
+    }
     num_seats_reserved = attendance_size - stoi(available_content);
 
     string description_file = description_dir + "/" + file_name;
@@ -558,22 +605,37 @@ void reserve_event(string uid, string eid, string num_seats)
     string user_res_file = give_user_reserved_dir(uid) + "/" + res_file;
     string event_res_file = give_event_reservations_dir(eid) + "/" + res_file;
     string res_content = uid + " " + num_seats + " " + time2;
-    save_event_file(user_res_file, res_content, (uint64_t)res_content.length());
-    save_event_file(event_res_file, res_content, (uint64_t)res_content.length());
+
+    if (!save_event_file(user_res_file, res_content, (uint64_t)res_content.length()))
+    {
+        cout << "Error saving file.\n";
+        exit(1);
+    }
+
+    if (!save_event_file(event_res_file, res_content, (uint64_t)res_content.length()))
+    {
+        cout << "Error saving file.\n";
+        exit(1);
+    }
 
     string available_file = give_event_available_file(eid);
     int new_avail_seats = get_available_seats(eid) - stoi(num_seats);
     string avail_content = to_string(new_avail_seats);
-    save_event_file(available_file, avail_content, (uint64_t)avail_content.length());
+    if (!save_event_file(available_file, avail_content, (uint64_t)avail_content.length()))
+    {
+        cout << "Error saving file.\n";
+        exit(1);
+    }
 }
 
 void close_active_event(string eid)
 {
     int fd;
     string close_eid_file = give_event_end_file(eid);
-    fd = open(close_eid_file.c_str(), O_WRONLY | O_CREAT, 0700);
+    fd = open(close_eid_file.c_str(), O_WRONLY | O_CREAT, 0777);
     if (fd == -1)
     {
+        cout << "Error opening " + eid + " event close file\n";
         exit(1);
     }
 }
@@ -595,7 +657,11 @@ int get_available_seats(string event_id)
     // Extract AVAILABLE file content
     string available_content;
     int available_size;
-    extract_file(available_file, available_content, available_size);
+    if (!extract_file(available_file, available_content, available_size))
+    {
+        cout << "Error extracting file.\n";
+        exit(1);
+    }
 
     return stoi(available_content);
 }
@@ -610,7 +676,11 @@ bool check_event_future(string event_id)
 {
     string start_file = give_event_start_file(event_id), start_content;
     int start_size;
-    extract_file(start_file, start_content, start_size);
+    if (!extract_file(start_file, start_content, start_size))
+    {
+        cout << "Error extracting file.\n";
+        exit(1);
+    }
     vector<string> divided_start_file = split_string(start_content);
     string event_date = divided_start_file[4] + " " + divided_start_file[5];
 

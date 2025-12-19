@@ -100,7 +100,7 @@ Command_Options resolve_server_request(string command)
 
 string trim(string &s)
 {
-    while (!s.empty() && (s[s.length() - 1] == '\n' || s[s.length() - 1] == '\r'))
+    if (!s.empty() && (s[s.length() - 1] == '\n'))
     {
         s.erase(s.length() - 1);
     }

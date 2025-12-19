@@ -22,8 +22,10 @@
 #include <database.hpp>
 #include <constants.hpp>
 #include <server.hpp>
+#include <parser.hpp>
 
 char port[MAX_STRING];
+
 bool verbose = false;
 
 bool tcp_message_complete(string msg)
@@ -68,6 +70,18 @@ int main(int argc, char **argv)
     vector<string> tokens;
     map<int, string> tcp_buffers;
 
+    fd_set inputs, testfds;
+    struct timeval timeout;
+
+    int i, out_fds, errcode, n_udp, n_tcp,
+        udp_fd, tcp_fd, newfd, udp_rc, tcp_rc;
+
+    char buffer[MAX_STRING], host[NI_MAXHOST], service[NI_MAXSERV];
+
+    struct addrinfo udp_hints, *udp_res, tcp_hints, *tcp_res;
+    struct sockaddr_in udp_useraddr, tcp_useraddr;
+    socklen_t addrlen, tcp_len;
+
     // No arguments, use default values for port
     if (argc == 1)
     {
@@ -93,20 +107,6 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    fd_set inputs, testfds;
-    struct timeval timeout;
-
-    int i, out_fds, errcode, n_udp, n_tcp;
-
-    char buffer[MAX_STRING];
-
-    struct addrinfo udp_hints, *udp_res, tcp_hints, *tcp_res;
-    struct sockaddr_in udp_useraddr; // tcp_useraddr;
-    socklen_t addrlen;
-    int udp_fd, tcp_fd, newfd;
-
-    // char host[NI_MAXHOST], service[NI_MAXSERV];
-
     signal(SIGPIPE, SIG_IGN);
 
     // UDP Server
@@ -116,15 +116,21 @@ int main(int argc, char **argv)
     udp_hints.ai_flags = AI_PASSIVE | AI_NUMERICSERV;
 
     if ((errcode = getaddrinfo(NULL, port, &udp_hints, &udp_res)) != 0)
+    {
+        cout << "Error establishing UDP connection.\n";
         exit(1);
+    }
 
     udp_fd = socket(udp_res->ai_family, udp_res->ai_socktype, udp_res->ai_protocol);
     if (udp_fd == -1)
+    {
+        cout << "Error creating socket.\n";
         exit(1);
+    }
 
     if (bind(udp_fd, udp_res->ai_addr, udp_res->ai_addrlen) == -1)
     {
-        cout << "Bind error UDP server\n";
+        cout << "Bind error UDP server.\n";
         exit(1);
     }
     if (udp_res != NULL)
@@ -137,19 +143,26 @@ int main(int argc, char **argv)
     tcp_hints.ai_flags = AI_PASSIVE | AI_NUMERICSERV;
 
     if ((errcode = getaddrinfo(NULL, port, &tcp_hints, &tcp_res)) != 0)
+    {
+        cout << "Error establishing TCP connection.\n";
         exit(1);
+    }
 
     tcp_fd = socket(tcp_res->ai_family, tcp_res->ai_socktype, tcp_res->ai_protocol);
     if (tcp_fd == -1)
+    {
+        cout << "Error creating socket.\n";
         exit(1);
+    }
 
     if (bind(tcp_fd, tcp_res->ai_addr, tcp_res->ai_addrlen) == -1)
     {
-        cout << "Bind error TCP server\n";
+        cout << "Bind error TCP server.\n";
         exit(1);
     }
     if (listen(tcp_fd, SOMAXCONN) == -1)
     {
+        cout << "Listen TCP error.\n";
         exit(1);
     }
 
@@ -182,6 +195,7 @@ int main(int argc, char **argv)
         case 0:
             break;
         case -1:
+            perror("Select error.\n");
             exit(1);
         default:
             // Keyboard
@@ -206,18 +220,32 @@ int main(int argc, char **argv)
                 }
                 string udp_client_msg(buffer, n_udp);
                 cout << "Received UPD message: " + udp_client_msg;
+                if (verbose)
+                {
+                    udp_rc = getnameinfo(
+                        (struct sockaddr *)&udp_useraddr,
+                        addrlen,
+                        host, sizeof(host),
+                        service, sizeof(service), 0);
+                    if (udp_rc < 0)
+                    {
+                        cout << "Error accessing IP and port.\n";
+                        exit(1);
+                    }
+                    cout << "Client IP: " << host << "\nClient port: " << service << endl;
+                }
                 string response = handle_request(udp_client_msg);
                 n_udp = sendto(udp_fd, response.c_str(), response.length(), 0, (struct sockaddr *)&udp_useraddr, addrlen);
                 if (n_udp == -1)
                 {
                     cout << "Error sending message to UDP client.";
                 }
-                cout << "Sending UDP message: " + response << endl;
             }
             // TCP listening socket
             if (FD_ISSET(tcp_fd, &testfds))
             {
-                newfd = accept(tcp_fd, NULL, NULL);
+                tcp_len = sizeof(tcp_useraddr);
+                newfd = accept(tcp_fd, (sockaddr *)&tcp_useraddr, &tcp_len);
                 if (newfd != -1)
                 {
                     if (newfd < FD_SETSIZE)
@@ -251,13 +279,36 @@ int main(int argc, char **argv)
 
                     if (tcp_message_complete(tcp_buffers[i]))
                     {
-                        cout << "Receiving TCP message: " + tcp_buffers[i];
+                        cout << "Receiving TCP message: ";
+                        if (verbose)
+                        {
+                            tcp_rc = getnameinfo(
+                                (struct sockaddr *)&tcp_useraddr,
+                                tcp_len,
+                                host, sizeof(host),
+                                service, sizeof(service), 0);
+                            if (tcp_rc < 0)
+                            {
+                                cout << "Error accessing IP and port.\n";
+                                exit(1);
+                            }
+                            cout << "Client IP: " << host << "\nClient port: " << service << endl;
+                        }
 
                         string response = handle_request(tcp_buffers[i]);
                         size_t sent_bytes = 0;
                         size_t response_len = response.length();
-                        
-                        cout << "Sending TCP message: " + response << endl; 
+                        if (!response.rfind("RME OK ", 0) || !response.rfind("RMR OK ", 0) ||
+                            !response.rfind("RLS OK ", 0) || !response.rfind("RSE OK ", 0))
+                        {
+                            size_t pos = split_nth_space(response, 2);
+                            string output_msg = response.substr(0, pos);
+                            cout << "Sending TCP message: " + output_msg + "\n\n";
+                        }
+                        else
+                        {
+                            cout << "Sending TCP message: " + response << endl;
+                        }
                         while (sent_bytes < response_len)
                         {
                             n_tcp = write(i, response.c_str() + sent_bytes, response_len - sent_bytes);

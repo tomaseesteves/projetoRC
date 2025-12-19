@@ -2,6 +2,6 @@
 #define CONSTANTS_HPP
 #define PORT "58044"
 #define IP "127.0.0.0"
-#define MAX_STRING 1024
+#define MAX_STRING 1048576
 #define MAX_FILE_SIZE 10000000
 #endif

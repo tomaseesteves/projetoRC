@@ -27,11 +27,6 @@
 
 using namespace std;
 
-/// devia-se fazer exit caso nao consigo criar dir do user?
-/// nao deveria existir locks?
-/// ver o network user
-/// temos de por verificaçao de future events
-
 string give_user_dir(string UID)
 {
     return "ESDIR/USERS/" + UID;
@@ -96,26 +91,28 @@ string sort_reservations(vector<Reservation> r)
 {
     string response = "";
 
-    if (r.empty()) return response;
+    if (r.empty())
+        return response;
 
     // Sort by date, keep 50 most recent reservations
     sort(r.begin(), r.end(),
-          [](const Reservation& a, const Reservation& b) 
-          {
-              return a.date_key > b.date_key;
-          });
-    if (r.size() > 50) r.resize(50);
+         [](const Reservation &a, const Reservation &b)
+         {
+             return a.date_key > b.date_key;
+         });
+    if (r.size() > 50)
+        r.resize(50);
 
     // Sort by eventID
     sort(r.begin(), r.end(),
-          [](const Reservation& a, const Reservation& b) 
-          {
-              return a.event_id < b.event_id;
-          });
+         [](const Reservation &a, const Reservation &b)
+         {
+             return a.event_id < b.event_id;
+         });
 
-     for (Reservation res : r)
-     {
-        response += " " + res.event_id + " " + res.date_str + " " + res.num_seats; 
-     }
-     return response;
+    for (Reservation res : r)
+    {
+        response += " " + res.event_id + " " + res.date_str + " " + res.num_seats;
+    }
+    return response;
 }

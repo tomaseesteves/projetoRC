@@ -35,25 +35,25 @@ string connect_UDP(char *ip_address, char *port, string msg)
         cout << "Error creating socket.\n";
         exit(1);
     }
-    
+
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
-    
+
     errcode = getaddrinfo(ip_address, port, &hints, &res);
     if (errcode != 0)
     {
         cout << "Error establishing UDP connection.\n";
         exit(1);
     }
-    
+
     ssize_t n = sendto(fd, msg.c_str(), msg_len, 0, res->ai_addr, res->ai_addrlen);
     if (n == -1)
     {
         cout << "Error sending message to UDP server.\n";
         exit(1);
     }
-    
+
     addrlen = sizeof(addr);
     n = recvfrom(fd, buffer, MAX_STRING, 0,
                  (struct sockaddr *)&addr, &addrlen);
@@ -76,7 +76,7 @@ string connect_TCP(char *ip_address, char *port, string msg)
     size_t msg_len = (size_t)msg.length();
     char buffer[MAX_STRING];
     string response;
-    
+
     fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd == -1)
     {
@@ -92,15 +92,15 @@ string connect_TCP(char *ip_address, char *port, string msg)
     errcode = getaddrinfo(ip_address, port, &hints, &res);
     if (errcode != 0)
     {
-        cout << "Erro a estabelecer conexão TCP.\n";
+        cout << "Error establishing TCP connection.\n";
         exit(1);
     }
-    
+
     ssize_t n = connect(fd, res->ai_addr, res->ai_addrlen);
     size_t total_bytes = 0;
     if (n == -1)
     {
-        cout << "Error establishing TCP connection.\n";
+        cout << "Could not connect to TCP.\n";
         exit(1);
     }
 
@@ -108,14 +108,14 @@ string connect_TCP(char *ip_address, char *port, string msg)
     while (total_bytes < msg_len)
     {
         n = write(fd, msg.c_str() + total_bytes, msg_len - total_bytes);
-        if (n <= 0) 
+        if (n <= 0)
         {
             cout << "Error sending message to TCP server.\n";
             exit(1);
         }
         total_bytes += n;
     }
-    
+
     // Read messages from TCP server
     total_bytes = 0;
     while (true)
@@ -134,15 +134,15 @@ string connect_TCP(char *ip_address, char *port, string msg)
         {
             istringstream iss(response);
             string tag, status, userID, name, event_date, event_hour,
-                   attendance_size, seats_reserved, file_name;
+                attendance_size, seats_reserved, file_name;
             size_t file_size;
- 
-            if (iss >> tag >> status >> userID >> name >> event_date >> event_hour
-                >> attendance_size >> seats_reserved >> file_name >> file_size)
+
+            if (iss >> tag >> status >> userID >> name >> event_date >> event_hour >> attendance_size >> seats_reserved >> file_name >> file_size)
             {
                 streampos header_end = iss.tellg();
-                if (header_end == -1) 
+                if (header_end == -1)
                 {
+                    cout << "error\n";
                     exit(1);
                 }
                 size_t already_read = response.size() - (size_t)header_end;
@@ -152,6 +152,7 @@ string connect_TCP(char *ip_address, char *port, string msg)
                     ssize_t m = read(fd, buffer, sizeof(buffer));
                     if (m <= 0)
                     {
+                        cout << "error reading\n";
                         exit(1);
                     }
                     response.append(buffer, m);

@@ -20,12 +20,6 @@
 
 using namespace std;
 
-/// VER O PORT E O IPADRESS DO PROTOCOL CLIENTE!!! PERGUNTAR AO PROFESSOR
-/// CRIAR UMA MELHOR VERIFICAÇAO PARA AMBOS OS LADOS QUANTO AO QUE ESTA A RECEBER
-/// CHECK DATE E CHECK HOUR !!!!
-/// filesize tem de ter max 8 digitos
-/// verificar no create que a data que o file recebe corresponde ao numero de bytes corretos
-
 string handle_login(vector<string> tokens)
 {
     string msg;
@@ -193,7 +187,7 @@ string handle_create(vector<string> tokens)
         !check_only_digits(tokens[6]) || stoi(tokens[6]) < 10 || stoi(tokens[6]) > 999 ||
         !check_size_file_name(tokens[7]) || !check_file_name(tokens[7]) ||
         !check_hour(tokens[5]) || !check_date(tokens[4]) ||
-        !check_future_date(date) ||
+        ///!check_future_date(date) ||
         !check_only_digits(tokens[8]) || !check_size_file(stoi(tokens[8])) ||
         tokens[9].size() != stoul(tokens[8]))
     {

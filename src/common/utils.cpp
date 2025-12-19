@@ -130,13 +130,13 @@ bool check_future_date(string &s)
     ss >> get_time(&tm, "%d-%m-%Y %H:%M");
     given_time = mktime(&tm);
 
-    return difftime(given_time,now) > 0;
+    return difftime(given_time, now) > 0;
 }
 
 bool check_file_name(string &s)
 {
     // Find last occurence of '.'
-    const char* dot = strrchr(s.c_str(), '.');
+    const char *dot = strrchr(s.c_str(), '.');
 
     // check for valid extension?
     if (!dot || strlen(dot) != 4)
@@ -148,7 +148,6 @@ bool check_file_name(string &s)
     {
         if (!isdigit(c) && !isalpha(c) && c != '-' && c != '_' && c != '.')
         {
-            cout << "INVALID CHAR\n";
             return false;
         }
     }

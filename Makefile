@@ -1,6 +1,6 @@
 CC = g++
 
-CCFLAGS = -fsanitize=address -fsanitize=undefined -Wall -Wextra -O2 -Iinclude 
+CCFLAGS = -Wall -Wextra -O2 -Iinclude 
 
 .PHONY: all clean run
 

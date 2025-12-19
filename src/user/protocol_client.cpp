@@ -55,12 +55,6 @@ void handle_ip_port(int argc, char **argv)
     cout << "Welcome!\n\n";
 }
 
-/// o user tem de verificar os replies do server?
-/// reserve n tem de ser menor ou igual ao available seats
-/// ver quem indentifica os erros USER OU SERVER
-/// server ve a lista de as reservas mais recentes 50 max
-/// o max string é o numero de bytes maximo que se pode recer?
-
 /**
  * Command: login UID password
  * Client message: LIN UID passwors
@@ -442,11 +436,11 @@ void handle_create(vector<string> tokens)
         return;
     }
     string full_date = tokens[3] + ' ' + tokens[4];
-    if (!check_future_date(full_date))
+    /*if (!check_future_date(full_date))
     {
         cout << "Date of event must be in the future.\n\n";
         return;
-    }
+    }*/
     if (!check_only_digits(tokens[5]) || stoi(tokens[5]) < 10 || stoi(tokens[5]) > 999)
     {
         cout << tokens[5] << "Number of seats in event must be a number between 10 and 999.\n\n";
@@ -785,6 +779,11 @@ void handle_show(vector<string> tokens)
                         divided_data[2] + " " + divided_data[3] + "\n-> Out of " +
                         divided_data[4] + " seats, " + divided_data[5] + " seats have been reserved.\n-> File " + divided_data[6] + " of size " + divided_data[7] + " Bytes has been saved to your local directory.\n\n";
         }
+        else
+        {
+            cout << "could not save file received\n";
+            exit(1);
+        }
         return;
     }
 
@@ -871,7 +870,9 @@ void handle_reserve(vector<string> tokens)
     // Possible status outcomes
     if (status == "ACC")
     {
-        cout << "Reservation made successfully. Enjoy the event!\n\n";
+        cout << "Reservation made successfully: " + tokens[2] +
+                    " seats were reserved at event " + tokens[1] +
+                    ".\nEnjoy the event!\n\n";
         return;
     }
     else if (status == "NOK")
