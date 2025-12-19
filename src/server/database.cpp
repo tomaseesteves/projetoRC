@@ -30,7 +30,7 @@
 
 using namespace std;
 
-/// devia-se fazer exit caso nao consigo criar dir do user?
+/// ESCREVER EM CADA EXIT O PORQUE DE NAO CONSEGUIR
 /// nao deveria existir locks?
 /// ver o network user
 /// temos de por verificaçao de future events
