@@ -1,7 +1,8 @@
-#ifndef PROTOCOL_HPP
-#define PROTOCOL_HPP
+#ifndef PROTOCOL_CLIENT_HPP
+#define PROTOCOL_CLIENT_HPP
 
 #include <vector>
+#include <string>
 
 using namespace std;
 

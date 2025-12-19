@@ -6,7 +6,7 @@
 
 using namespace std;
 
-int create_data_base();
+void create_data_base();
 
 void create_user_dir(string uid, string password);
 
@@ -28,7 +28,7 @@ string get_password(string uid);
 
 string get_user_events(string uid);
 
-string get_user_reservations();
+string get_user_reservations(string user_id);
 
 string create_event_dir(string uid, string event_name, string event_date,
                         string attendance_size, string file_name,
@@ -44,9 +44,9 @@ void reserve_event(string uid, string eid, string num_seats);
 
 int get_available_seats(string event_id);
 
-void close_event(string eid);
+void close_active_event(string eid);
 
-bool check_event_existance(string eid);
+bool check_event_existence(string eid);
 
 bool check_event_closed(string event_id);
 
@@ -54,6 +54,6 @@ bool check_event_future(string event_id);
 
 bool check_event_available_seats(string event_id);
 
-bool check_is_user_event(string username, string eid)
+bool check_is_user_event(string username, string eid);
 
 #endif

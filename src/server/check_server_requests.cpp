@@ -13,6 +13,7 @@
 
 #include <check_server_requests.hpp>
 #include <database.hpp>
+#include <parser.hpp>
 
 using namespace std;
 
@@ -24,13 +25,14 @@ int check_login(string username, string password)
     if (!check_user_registered(username))
     {
         create_user_dir(username, password);
-        return 2;
+        return REG;
     }
     else if (get_password(username) != password)
     {
-        return 1;
+        return NOK;
     }
-    return 0;
+    login_user(username);
+    return OK;
 };
 
 /// 0 caso que login deu bem
@@ -41,18 +43,18 @@ int check_logout(string username, string password)
 {
     if (!check_user_registered(username))
     {
-        return 2;
+        return UNR;
     }
     else if (!check_user_login(username))
     {
-        return 1;
+        return NOK;
     }
     else if (get_password(username) != password)
     {
-        return 3;
+        return WRP;
     }
     logout_user(username);
-    return 0;
+    return OK;
 };
 
 /// 0 caso que  deu bem
@@ -63,18 +65,18 @@ int check_unregister(string username, string password)
 {
     if (!check_user_registered(username))
     {
-        return 2;
+        return UNR;
     }
     else if (!check_user_login(username))
     {
-        return 1;
+        return NOK;
     }
     else if (get_password(username) != password)
     {
-        return 3;
+        return WRP;
     }
     erase_user_dir(username);
-    return 0;
+    return OK;
 };
 
 /// 0 caso que  deu bem
@@ -85,17 +87,18 @@ int check_changePass(string username, string password_old, string password_new)
 {
     if (!check_user_registered(username))
     {
-        return 3;
+        return NID;
     }
     else if (!check_user_login(username))
     {
-        return 1;
+        return NLG;
     }
     else if (get_password(username) != password_old)
     {
-        return 2;
+        return NOK;
     }
-    return 0;
+    change_pass(username, password_new);
+    return OK;
 };
 
 /// 0 caso que  deu bem
@@ -106,17 +109,17 @@ int check_myevents(string username, string password, string &msg)
 {
     if (!check_user_registered(username) || !check_user_login(username))
     {
-        return 2;
+        return NLG;
     }
     else if (get_password(username) != password)
     {
-        return 3;
+        return WRP;
     }
     else if ((msg = get_user_events(username)).size() == 0)
     {
-        return 1;
+        return NOK;
     }
-    return 0;
+    return OK;
 };
 
 int check_close_event(string username, string password, string eid)
@@ -137,15 +140,15 @@ int check_close_event(string username, string password, string eid)
     {
         return 1;
     }
+    else if (!check_event_existence(eid))
+    {
+        return 3;
+    }
     else if (!check_is_user_event(username, eid))
     {
         return 4;
     }
-    else if (!check_event_existance(eid))
-    {
-        return 3;
-    }
-    else if (!check_event_closed(eid))
+    else if (check_event_closed(eid))
     {
         return 7;
     }
@@ -157,11 +160,7 @@ int check_close_event(string username, string password, string eid)
     {
         return 5;
     }
-    else if (!check_event_closed(eid))
-    {
-        return 7;
-    }
-    close_event(eid);
+    close_active_event(eid);
     return 0;
 }
 
@@ -171,21 +170,21 @@ int check_list(string &msg)
 {
     if ((msg = get_event_list()).size() == 0)
     {
-        return 1;
+        return NOK;
     }
-    return 0;
+    return OK;
 };
 
 /// 0 caso que  deu bem
 /// 1 caso que o eid nao existe
 int check_show(string eid, string &msg)
 {
-    if (!check_event_existance(eid))
+    if (!check_event_existence(eid))
     {
-        return 1;
+        return NOK;
     }
     msg = get_event_info(eid);
-    return 0;
+    return OK;
 };
 
 int check_myreservations(string username, string password, string &msg)
@@ -202,7 +201,7 @@ int check_myreservations(string username, string password, string &msg)
     {
         return 3;
     }
-    else if ((msg = get_user_reservations()).size() == 0)
+    else if ((msg = get_user_reservations(username)).size() == 0)
     {
         return 1;
     }
@@ -227,11 +226,11 @@ int check_reserve(string username, string password, string eid, int value, int &
     {
         return 5;
     }
-    else if (!check_event_existance(eid))
+    else if (!check_event_existence(eid))
     {
         return 1;
     }
-    else if (!check_event_closed(eid))
+    else if (check_event_closed(eid))
     {
         return 7;
     }

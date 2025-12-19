@@ -1,4 +1,5 @@
 #include <sys/types.h>
+#include <iostream>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -14,84 +15,69 @@
 #include <signal.h>
 #define MYPORT "58000"
 
-#include <protocol.hpp>
+#include <protocol_server.hpp>
 #include <parser.hpp>
 #include <vector>
 #include <string>
 
 using namespace std;
 
-int main(int argc, char **argv)
+string handle_request(string full_msg)
 {
-    string s, msg;
-    vector<string> request;
-    request = splitString(s);
-    handle_ip_port(argc, argv);
-    while (true)
+    string request = full_msg.substr(0, 3);
+    trim(full_msg);
+    string msg;
+
+    switch (resolve_server_request(request))
     {
-        switch (resolveServerRequest(1))
-        {
-        case login:
-        {
-            msg = handle_login(request);
-            break;
-        }
-        case changePass:
-        {
-            msg = handle_changePass(request);
-            break;
-        }
-        case unregister:
-        {
-            msg = handle_unregister(request);
-            break;
-        }
-        case logout:
-        {
-            msg = handle_logout(request);
-            break;
-        }
-        case create:
-        {
-            msg = handle_create(request);
-            break;
-        }
-        case close_event:
-        {
-            msg = handle_close_event(request);
-            break;
-        }
-        case myevents:
-        {
-            msg = handle_myevents(request);
-            break;
-        }
-        case list:
-        {
-            msg = handle_list(request);
-            break;
-        }
-        case show:
-        {
-            msg = handle_show(request);
-            break;
-        }
-        case reserve:
-        {
-            msg = handle_reserve(request);
-            break;
-        }
-        case myreservations:
-        {
-            msg = handle_myreservations(request);
-            break;
-        }
-        case invalid_command:
-        {
-            msg = "ERR\n";
-            break;
-        }
-        }
+    case login:
+    {
+        return handle_login(split_string(full_msg));
     }
-    return 0;
+    case changePass:
+    {
+        return handle_changePass(split_string(full_msg));
+    }
+    case unregister:
+    {
+        return handle_unregister(split_string(full_msg));
+    }
+    case logout:
+    {
+        return handle_logout(split_string(full_msg));
+    }
+    case create:
+    {
+        return handle_create(divide_create_request(full_msg));
+    }
+    case close_event:
+    {
+        return handle_close_event(split_string(full_msg));
+    }
+    case myevents:
+    {
+        return handle_myevents(split_string(full_msg));
+    }
+    case list:
+    {
+        return handle_list(split_string(full_msg));
+    }
+    case show:
+    {
+        return handle_show(split_string(full_msg));
+    }
+    case reserve:
+    {
+        return handle_reserve(split_string(full_msg));
+    }
+    case myreservations:
+    {
+        return handle_myreservations(split_string(full_msg));
+    }
+    default:
+    {
+        msg = "ERR\n";
+        return msg;
+    }
+    }
 }

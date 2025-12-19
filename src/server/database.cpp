@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <filesystem>
 #include <ctime>
+#include <iostream>
 
 #include <string>
 #include <vector>
@@ -23,6 +24,8 @@
 #include <file.hpp>
 #include <utils.hpp>
 #include <parser.hpp>
+#include <database.hpp>
+#include <database_utils.hpp>
 
 using namespace std;
 
@@ -31,67 +34,7 @@ using namespace std;
 /// ver o network user
 /// temos de por verificaçao de future events
 
-string give_user_dir(string UID)
-{
-    return "ESDIR/USERS/" + UID;
-}
-
-string give_user_login_file(string UID)
-{
-    return "ESDIR/USERS/" + UID + "/" + UID + "_login.txt";
-}
-
-string give_user_password_file(string UID)
-{
-    return "ESDIR/USERS/" + UID + "/" + UID + "_pass.txt";
-}
-
-string give_user_created_dir(string UID)
-{
-    return "ESDIR/USERS/" + UID + "/CREATED";
-}
-
-string give_user_reserved_dir(string UID)
-{
-    return "ESDIR/USERS/" + UID + "/RESERVED";
-}
-
-string give_user_event_file(string UID, string EID)
-{
-    return "ESDIR/USERS/" + UID + "/RESERVED/" + EID + ".txt";
-}
-
-string give_event_dir(string EID)
-{
-    return "ESDIR/EVENTS/" + EID;
-}
-
-string give_event_start_file(string EID)
-{
-    return "ESDIR/EVENTS/" + EID + "/START_" + EID + ".txt";
-}
-
-string give_event_available_file(string EID)
-{
-    return "ESDIR/EVENTS/" + EID + "/AVAILABLE_" + EID + ".txt";
-}
-
-string give_event_description_dir(string EID)
-{
-    return "ESDIR/EVENTS/" + EID + "/DESCRIPTION";
-}
-
-string give_event_end_file(string EID)
-{
-    return "ESDIR/EVENTS/" + EID + "/END_" + EID + ".txt";
-}
-
-string give_event_reservations_dir(string EID)
-{
-    return "ESDIR/EVENTS/" + EID + "/RESERVATIONS";
-}
-
-int create_data_base()
+void create_data_base()
 {
     if (mkdir("ESDIR", 0700) == -1)
     {
@@ -125,7 +68,7 @@ void create_user_dir(string uid, string password)
            reserved = give_user_reserved_dir(uid);
     int fd;
     ssize_t n;
-    size_t pass_len = password.size(), total_bytes;
+    size_t pass_len = password.size(), total_bytes = 0;
     if (mkdir(uid_dir.c_str(), 0700) == -1)
     {
         if (errno != EEXIST)
@@ -169,6 +112,7 @@ void create_user_dir(string uid, string password)
     {
         exit(1);
     }
+    total_bytes = 0;
     while (total_bytes < 1)
     {
         n = write(fd, "1" + total_bytes, 1 - total_bytes);
@@ -186,7 +130,7 @@ void login_user(string uid)
     int fd;
     string login = give_user_login_file(uid);
     ssize_t n;
-    size_t total_bytes;
+    size_t total_bytes = 0;
     fd = open(login.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0700);
     if (fd == -1)
     {
@@ -209,7 +153,7 @@ void logout_user(string uid)
     int fd;
     string login = give_user_login_file(uid);
     ssize_t n;
-    size_t total_bytes;
+    size_t total_bytes = 0;
     fd = open(login.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0700);
     if (fd == -1)
     {
@@ -236,13 +180,17 @@ int dir_exists(string path)
 bool check_user_registered(string uid)
 {
     string password = give_user_password_file(uid);
-    return access(password.c_str(), R_OK | W_OK);
+    return !access(password.c_str(), R_OK | W_OK);
 }
 
 bool check_user_login(string uid)
 {
-    string login = give_user_login_file(uid);
-    int fd = open(login.c_str(), O_RDONLY);
+    string login = give_user_login_file(uid), login_content;
+    int login_size;
+    extract_file(login, login_content, login_size);
+
+    return login_content == "1";
+    /*int fd = open(login.c_str(), O_RDONLY);
     ssize_t n;
     size_t total_bytes;
     int buf[1];
@@ -260,7 +208,7 @@ bool check_user_login(string uid)
         total_bytes += n;
     }
     close(fd);
-    return buf[1] ? true : false;
+    return buf[1] ? true : false;*/
 }
 
 void erase_user_dir(string uid)
@@ -278,8 +226,8 @@ void change_pass(string uid, string password)
 {
     int fd;
     string pass_path = give_user_password_file(uid);
-    ssize_t n, pass_len = password.size();
-    size_t total_bytes;
+    ssize_t n;
+    size_t total_bytes = 0, pass_len = password.size();
     fd = open(pass_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0700);
     if (fd == -1)
     {
@@ -299,10 +247,12 @@ void change_pass(string uid, string password)
 
 string get_password(string uid)
 {
-    string pass_path = give_user_password_file(uid);
-    int fd = open(pass_path.c_str(), O_RDONLY);
+    string pass_path = give_user_password_file(uid), password;
+    int pass_size;
+    extract_file(pass_path, password, pass_size);
+    /*int fd = open(pass_path.c_str(), O_RDONLY);
     ssize_t n;
-    size_t total_bytes;
+    size_t total_bytes = 0;
     string password;
     if (fd == -1)
     {
@@ -318,6 +268,7 @@ string get_password(string uid)
         total_bytes += n;
     }
     close(fd);
+    cout << password + "\n";*/
     return password;
 }
 
@@ -330,70 +281,44 @@ string get_user_events(string uid)
     int start_size;
     DIR *dir = opendir(created_path.c_str());
     struct dirent *entry;
-    size_t total_bytes;
-    ssize_t n;
-    int fd;
-
-    if (!dir)
-    {
-        exit(1);
-    }
 
     while ((entry = readdir(dir)) != NULL)
     {
         if (strcmp(entry->d_name, ".") == 0 ||
             strcmp(entry->d_name, "..") == 0)
             continue;
-        // eid = strrchr(entry->d_name, '.');
+
         eid = strtok(entry->d_name, ".");
         event_path_available = give_event_available_file(eid);
         event_path_end = give_event_end_file(eid);
         event_path_start = give_event_start_file(eid);
 
-        fd = open(event_path_start.c_str(), O_RDONLY);
-        if (fd == -1)
-        {
-            exit(1);
-        }
         extract_file(event_path_start, start_content, start_size);
 
-        close(fd);
-        if (!check_future_date(date))
+        // Extract START file content
+        extract_file(event_path_start, start_content, start_size);
+        vector<string> divided_start_file = split_string(start_content);
+        string event_date = divided_start_file[4] + " " + divided_start_file[5];
+
+        int num_seats_available = get_available_seats(eid);
+
+        if (!check_future_date(event_date))
         {
-            status = '0';
+            status = "0"; // Event was in the past
+        }
+        else if (num_seats_available == 0)
+        {
+            status = "2"; // Event is sold out
         }
         else if (access(event_path_end.c_str(), F_OK) == 0)
         {
-            status = '3';
+            status = "3"; // Event is closed
         }
         else
         {
-            fd = open(event_path_res.c_str(), O_RDONLY);
-            if (fd == -1)
-            {
-                exit(1);
-            }
-            while (total_bytes < 3)
-            {
-                n = read(fd, &spaces_left[total_bytes], 3 - total_bytes);
-                if (n <= 0)
-                {
-                    exit(1);
-                }
-                total_bytes += n;
-            }
-            if (stoi(spaces_left) != 0)
-            {
-                status = '1';
-            }
-            else
-            {
-                status = '2';
-            }
-            user_events += eid + ' ' + status + '\n';
-            close(fd);
+            status = "1"; // Event is still accepting reservations
         }
-        user_events += eid + ' ' + status + '\n';
+        user_events += ' ' + eid + ' ' + status;
     }
     closedir(dir);
     return user_events;
@@ -406,8 +331,9 @@ string create_event_dir(string uid, string event_name, string event_date,
     string all_events = "ESDIR/EVENTS", event_id = "", event_dir, user_file,
            start_file, available_file, description_dir, description_file,
            reservations_dir, start_content;
-    int highest_id = 0, fd, n;
-    size_t total_bytes = 0, start_len;
+    int highest_id = 1, fd;
+    char tmp[4];
+
     DIR *dir = opendir(all_events.c_str());
     struct dirent *entry;
 
@@ -416,9 +342,9 @@ string create_event_dir(string uid, string event_name, string event_date,
         if (strcmp(entry->d_name, ".") == 0 ||
             strcmp(entry->d_name, "..") == 0)
             continue;
-        if (atoi(entry->d_name) > highest_id)
+        if (atoi(entry->d_name) >= highest_id)
         {
-            highest_id = atoi(entry->d_name);
+            highest_id = atoi(entry->d_name) + 1;
         }
         if (highest_id > 999)
         {
@@ -426,7 +352,8 @@ string create_event_dir(string uid, string event_name, string event_date,
         }
     }
 
-    event_id = to_string(highest_id);
+    sprintf(tmp, "%03d", highest_id);
+    event_id = tmp;
     event_dir = give_event_dir(event_id);
     user_file = give_user_created_dir(uid) + "/" + event_id + ".txt";
     start_file = give_event_start_file(event_id);
@@ -483,15 +410,12 @@ string create_event_dir(string uid, string event_name, string event_date,
     return event_id;
 }
 
-// REVER
-string get_user_reservations(string event_id)
+string get_user_reservations(string user_id)
 {
-    string res_dir = give_event_reservations_dir(event_id);
-    int total_reservations = 0, event_reservations, event_file, fd, n;
-    vector<string> divided_file;
-    size_t total_bytes;
-    char *buffer[24];
-    DIR *dir = opendir(res_dir.c_str());
+    string user_res_dir = give_user_reserved_dir(user_id),
+           reservation_content, response = "";
+    int file_size;
+    DIR *dir = opendir(user_res_dir.c_str());
     struct dirent *entry;
 
     while ((entry = readdir(dir)) != NULL)
@@ -499,27 +423,18 @@ string get_user_reservations(string event_id)
         if (strcmp(entry->d_name, ".") == 0 ||
             strcmp(entry->d_name, "..") == 0)
             continue;
+        string event_id = string(entry->d_name).substr(2, 3);
+        string full_path = user_res_dir + "/" + string(entry->d_name);
+        extract_file(full_path, reservation_content, file_size);
+        vector<string> divided_res = split_string(reservation_content);
+        string num_seats = divided_res[1];
+        string res_date = divided_res[2];
+        string res_hour = divided_res[3];
 
-        fd = open(entry->d_name, O_RDONLY);
-        if (fd == -1)
-        {
-            exit(1);
-        }
-        while (total_bytes < 24)
-        {
-            n = read(fd, buffer, 24 - total_bytes);
-            if (n <= 0)
-            {
-                exit(1);
-            }
-            total_bytes += n;
-        }
-        divided_file = split_string(string(buffer)); // importar!!!
-        event_reservations = stoi(divided_file[1]);
-        total_reservations += event_reservations;
-        close(fd);
+        response += " " + event_id + " " + res_date + " " + res_hour + " " + num_seats;
     }
-    return total_reservations;
+    closedir(dir);
+    return response;
 }
 
 string get_event_list()
@@ -537,51 +452,40 @@ string get_event_list()
         string event_id = string(entry->d_name);
         string event_path = all_events + "/" + event_id;
 
-        // Open directory of an event
-        DIR *dir = opendir(entry->d_name);
-        struct dirent *entry_event;
+        string status;
+        string start_file = give_event_start_file(event_id);
+        string available_file = give_event_available_file(event_id);
+        string end_file = give_event_end_file(event_id);
 
-        while ((entry_event = readdir(dir)) != NULL)
+        // Extract START file content
+        string start_content;
+        int start_size;
+        extract_file(start_file, start_content, start_size);
+        vector<string> divided_start_file = split_string(start_content);
+        string event_date = divided_start_file[4] + " " + divided_start_file[5];
+        string event_name = divided_start_file[1];
+
+        int num_seats_available = get_available_seats(event_id);
+
+        if (!check_future_date(event_date))
         {
-            string status;
-            string start_file = give_event_start_file(event_id);
-            string available_file = give_event_available_file(event_id);
-            string end_file = give_event_end_file(event_id);
-
-            // Extract START file content
-            string start_content;
-            int start_size;
-            extract_file(start_file, start_content, start_size);
-            vector<string> divided_start_file = split_string(start_content);
-            string event_date = divided_start_file[4] + " " + divided_start_file[5];
-            string event_name = divided_start_file[1];
-            int attendance_size = stoi(divided_start_file[3]);
-
-            // Extract AVAILABLE file content
-            string available_content;
-            int available_size;
-            extract_file(available_file, available_content, available_size);
-            int num_seats_available = stoi(available_content);
-
-            if (!check_future_date(event_date))
-            {
-                status = "0"; // Event was in the past
-            }
-            else if (num_seats_available == 0)
-            {
-                status = "2"; // Event is sold out
-            }
-            else if (access(end_file.c_str(), F_OK) == 0)
-            {
-                status = "3"; // Event is closed
-            }
-            else
-            {
-                status = "1"; // Event is still accepting reservations
-            }
-            response += " " + event_id + " " + event_name + " " + status + " " + event_date;
+            status = "0"; // Event was in the past
         }
+        else if (num_seats_available == 0)
+        {
+            status = "2"; // Event is sold out
+        }
+        else if (access(end_file.c_str(), F_OK) == 0)
+        {
+            status = "3"; // Event is closed
+        }
+        else
+        {
+            status = "1"; // Event is still accepting reservations
+        }
+        response += " " + event_id + " " + event_name + " " + status + " " + event_date;
     }
+    closedir(dir);
     return response;
 }
 
@@ -628,7 +532,7 @@ void reserve_event(string uid, string eid, string num_seats)
     strftime(time1, sizeof(time1), "%Y%m%d_%H%M%S", &tm_info);
     strftime(time2, sizeof(time2), "%d-%m-%Y %H:%M:%S", &tm_info);
 
-    string res_file = "R-" + uid + "-" + time1 + ".txt";
+    string res_file = "R-" + eid + "-" + time1 + ".txt";
     string user_res_file = give_user_reserved_dir(uid) + "/" + res_file;
     string event_res_file = give_event_reservations_dir(eid) + "/" + res_file;
     string res_content = uid + " " + num_seats + " " + time2;
@@ -641,7 +545,7 @@ void reserve_event(string uid, string eid, string num_seats)
     save_event_file(available_file, avail_content, (uint64_t)avail_content.length());
 }
 
-void close_event(string eid)
+void close_active_event(string eid)
 {
     int fd;
     string close_eid_file = give_event_end_file(eid);
@@ -654,12 +558,12 @@ void close_event(string eid)
 
 bool check_event_existence(string eid)
 {
-    return access(give_event_dir(eid).c_str(), R_OK | W_OK) != 0;
+    return access(give_event_dir(eid).c_str(), R_OK | W_OK) == 0;
 }
 
 bool check_is_user_event(string username, string eid)
 {
-    return access(give_user_event_file(username, eid).c_str(), R_OK | W_OK) != 0;
+    return access(give_user_event_file(username, eid).c_str(), R_OK | W_OK) == 0;
 }
 
 int get_available_seats(string event_id)
@@ -677,7 +581,7 @@ int get_available_seats(string event_id)
 bool check_event_closed(string event_id)
 {
     string end_file = give_event_end_file(event_id);
-    return access(end_file.c_str(), F_OK) != 0;
+    return access(end_file.c_str(), F_OK) == 0;
 }
 
 bool check_event_future(string event_id)

@@ -13,7 +13,7 @@
 
 #include <network.hpp>
 #include <constants.hpp>
-#include <protocol.hpp>
+#include <protocol_client.hpp>
 #include <parser.hpp>
 #include <utils.hpp>
 #include <file.hpp>
@@ -28,9 +28,9 @@ void handle_ip_port(int argc, char **argv)
 {
     // Use default values for IP address and port
     if (argc == 1)
-    { //mudar depois!!!!!
-        strcpy(ip_address, "193.136.138.142");
-        strcpy(port, "58000");
+    {
+        strcpy(ip_address, IP);
+        strcpy(port, PORT);
     }
     // Use IP and port values given by user
     else if (argc == 5 && !strcmp(argv[1], "-n") && !strcmp(argv[3], "-p"))
@@ -66,7 +66,7 @@ void handle_login(vector<string> tokens)
 {
     string response, status, msg, reply_command;
     vector<string> divided_response;
-    
+
     if (tokens.size() != 3)
     {
         cout << "Incorrect number of arguments.\nUsage: login [UID] [password]\n\n";
@@ -99,7 +99,7 @@ void handle_login(vector<string> tokens)
 
     divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
-    status =  trim(divided_response[1]);
+    status = trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
@@ -183,12 +183,12 @@ void handle_changePass(vector<string> tokens)
     }
 
     // Establish TCP connection
-    msg = "CPS " + curr_user + tokens[1] + " " + tokens[2] + '\n';
+    msg = "CPS " + curr_user + " " + tokens[1] + " " + tokens[2] + '\n';
     response = connect_TCP(ip_address, port, msg);
 
     divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
-    status =  trim(divided_response[1]);
+    status = trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
@@ -251,13 +251,13 @@ void handle_unregister(vector<string> tokens)
         return;
     }
 
-    // Establish UDP connection    
+    // Establish UDP connection
     msg = "UNR " + curr_user + " " + curr_pass + '\n';
     response = connect_UDP(ip_address, port, msg);
 
     divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
-    status =  trim(divided_response[1]);
+    status = trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
@@ -329,7 +329,7 @@ void handle_logout(vector<string> tokens)
 
     divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
-    status =  trim(divided_response[1]);
+    status = trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
@@ -391,7 +391,7 @@ bool handle_exit_user(vector<string> tokens)
  * Command: create name event_fname event_date attendance_size
  * Client message: CRE UID password name event_date attendance_size Fname Fsize Fdata
  * TCP server message: RCE status [EID]
- * 
+ *
  * OK - event created successfully
  * NOK - event could not be created
  * NLG - user was not logged in
@@ -425,12 +425,12 @@ void handle_create(vector<string> tokens)
     }
     if (!check_date(tokens[3]))
     {
-        cout << "Date of event is not in a valid format.\nIt must be in this format: dd-mm-yyyy";
+        cout << "Date of event is not in a valid format.\nIt must be in this format: dd-mm-yyyy\n\n";
         return;
     }
     if (!check_hour(tokens[4]))
     {
-        cout << "Hour of event is not in a valid format.\nIt must be in this format: hh:mm";
+        cout << "Hour of event is not in a valid format.\nIt must be in this format: hh:mm\n\n";
         return;
     }
     string full_date = tokens[3] + ' ' + tokens[4];
@@ -455,7 +455,7 @@ void handle_create(vector<string> tokens)
         cout << "Could not open or read the file's content.\n\n";
         return;
     }
-    if(!check_size_file(file_size))
+    if (!check_size_file(file_size))
     {
         cout << "File is too large to be sent.\n\n";
         return;
@@ -469,7 +469,7 @@ void handle_create(vector<string> tokens)
 
     divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
-    status =  trim(divided_response[1]);
+    status = trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
@@ -543,7 +543,7 @@ void handle_close_event(vector<string> tokens)
 
     divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
-    status =  trim(divided_response[1]);
+    status = trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
@@ -629,7 +629,7 @@ void handle_myevents(vector<string> tokens)
 
     divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
-    status =  trim(divided_response[1]);
+    status = trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
@@ -695,7 +695,7 @@ void handle_list(vector<string> tokens)
 
     divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
-    status =  trim(divided_response[1]);
+    status = trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
@@ -710,8 +710,8 @@ void handle_list(vector<string> tokens)
         response_size = divided_response.size();
         for (int i = 2; (size_t)i < response_size; i += 5)
         {
-            cout << "-> Event " + divided_response[i + 1] + " (ID " + divided_response[i] + "): " + 
-                        resolve_state(divided_response[i + 2]) + "\n   (Event's date: " + 
+            cout << "-> Event " + divided_response[i + 1] + " (ID " + divided_response[i] + "): " +
+                        resolve_state(divided_response[i + 2]) + "\n   (Event's date: " +
                         divided_response[i + 3] + " " + trim(divided_response[i + 4]) + ")\n";
         }
         cout << "Full Events List!\n\n";
@@ -763,7 +763,7 @@ void handle_show(vector<string> tokens)
 
     if (response.find(" OK") != string::npos)
     {
-        divided_response = extract_file_data(response, 0);
+        divided_response = extract_file_data(response);
         file_data = divided_response[1];
         divided_data = split_string(file_data);
         file_size = stoull(divided_data[7]);
@@ -773,17 +773,16 @@ void handle_show(vector<string> tokens)
         if (save_event_file(divided_data[6], file_content, file_size))
         {
             cout << "Received event " + divided_data[1] + " created by user " + divided_data[0] + ":\n"
-                    "-> Event's date " + divided_data[2] + " " + divided_data[3] + "\n-> Out of " + 
-                    divided_data[4] + " seats, " + divided_data[5] + " seats have been reserved.\n-> File " 
-                    + divided_data[6] + " of size " + divided_data[7] + " Bytes has been saved to your local directory.\n\n";
-
+                                                                                                  "-> Event's date " +
+                        divided_data[2] + " " + divided_data[3] + "\n-> Out of " +
+                        divided_data[4] + " seats, " + divided_data[5] + " seats have been reserved.\n-> File " + divided_data[6] + " of size " + divided_data[7] + " Bytes has been saved to your local directory.\n\n";
         }
         return;
     }
 
     divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
-    status =  trim(divided_response[1]);
+    status = trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
@@ -853,7 +852,7 @@ void handle_reserve(vector<string> tokens)
 
     divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
-    status =  trim(divided_response[1]);
+    status = trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
@@ -942,14 +941,14 @@ void handle_myreservations(vector<string> tokens)
 
     divided_response = split_string(response);
     reply_command = trim(divided_response[0]);
-    status =  trim(divided_response[1]);
+    status = trim(divided_response[1]);
 
     if (reply_command == "ERR")
     {
         cout << "Unexpected protocol message was received.\n\n";
         return;
     }
-    
+
     // Possible status outcomes
     if (status == "OK")
     {
@@ -957,8 +956,7 @@ void handle_myreservations(vector<string> tokens)
         cout << "Your reservations:\n";
         for (int i = 2; (size_t)i < response_size; i += 4)
         {
-            cout << "-> Reservation for event " + divided_response[i] + ": " + trim(divided_response[i + 3]) + " seats reserved.\n"
-                    + "   (Reserved at date " + divided_response[i + 1] + " " + divided_response[i + 2] + ")\n";
+            cout << "-> Reservation for event " + divided_response[i] + ": " + trim(divided_response[i + 3]) + " seats reserved.\n" + "   (Reserved at date " + divided_response[i + 1] + " " + divided_response[i + 2] + ")\n";
         }
         cout << "Remember, only the most recent 50 reservations are shown!\n\n";
         return;

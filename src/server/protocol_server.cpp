@@ -15,7 +15,7 @@
 #include <constants.hpp>
 #include <parser.hpp>
 #include <utils.hpp>
-
+#include <protocol_server.hpp>
 #include <check_server_requests.hpp>
 
 using namespace std;
@@ -25,30 +25,6 @@ using namespace std;
 /// CHECK DATE E CHECK HOUR !!!!
 /// filesize tem de ter max 8 digitos
 /// verificar no create que a data que o file recebe corresponde ao numero de bytes corretos
-
-char port[MAX_STRING], ip_address[MAX_STRING];
-bool logged_in = false;
-string curr_user = "", curr_pass = "";
-
-void handle_ip_port(int argc, char **argv)
-{
-    // Use default values for IP address and port
-    if (argc == 1)
-    {
-        strcpy(ip_address, IP);
-        strcpy(port, PORT);
-    }
-    else if (argc == 2)
-    {
-        strcpy(ip_address, argv[1]);
-        strcpy(port, argv[2]);
-    }
-    else
-    {
-        cout << "Incorrect number of arguments. Usage: ./user [-n ESIP] [-p ESport]\n";
-        exit(1);
-    }
-}
 
 string handle_login(vector<string> tokens)
 {
@@ -60,24 +36,26 @@ string handle_login(vector<string> tokens)
         msg = "RLI ERR\n";
         return msg;
     }
+
     switch (check_login(tokens[1], tokens[2]))
     {
-    case 0:
+    case OK:
     {
         msg = "RLI OK\n";
         return msg;
     }
-    case 1:
+    case NOK:
     {
         msg = "RLI NOK\n";
         return msg;
     }
-    default:
+    case REG:
     {
         msg = "RLI REG\n";
         return msg;
     }
     }
+    return "ERR\n";
 }
 
 string handle_logout(vector<string> tokens)
@@ -92,27 +70,28 @@ string handle_logout(vector<string> tokens)
     }
     switch (check_logout(tokens[1], tokens[2]))
     {
-    case 0:
+    case OK:
     {
         msg = "RLO OK\n";
         return msg;
     }
-    case 1:
+    case NOK:
     {
         msg = "RLO NOK\n";
         return msg;
     }
-    case 2:
+    case UNR:
     {
         msg = "RLO UNR\n";
         return msg;
     }
-    default:
+    case WRP:
     {
         msg = "RLO WRP\n";
         return msg;
     }
     }
+    return "ERR\n";
 }
 
 string handle_unregister(vector<string> tokens)
@@ -127,27 +106,28 @@ string handle_unregister(vector<string> tokens)
     }
     switch (check_unregister(tokens[1], tokens[2]))
     {
-    case 0:
+    case OK:
     {
         msg = "RUR OK\n";
         return msg;
     }
-    case 1:
+    case NOK:
     {
         msg = "RUR NOK\n";
         return msg;
     }
-    case 2:
+    case UNR:
     {
         msg = "RUR UNR\n";
         return msg;
     }
-    default:
+    case WRP:
     {
         msg = "RUR WRP\n";
         return msg;
     }
     }
+    return "ERR\n";
 }
 
 string handle_changePass(vector<string> tokens)
@@ -163,27 +143,28 @@ string handle_changePass(vector<string> tokens)
 
     switch (check_changePass(tokens[1], tokens[2], tokens[3]))
     {
-    case 0:
+    case OK:
     {
         msg = "RCP OK\n";
         return msg;
     }
-    case 1:
+    case NLG:
     {
         msg = "RCP NLG\n";
         return msg;
     }
-    case 2:
+    case NOK:
     {
         msg = "RCP NOK\n";
         return msg;
     }
-    default:
+    case NID:
     {
         msg = "RCP NID\n";
         return msg;
     }
     }
+    return "ERR\n";
 }
 
 /**
@@ -195,30 +176,37 @@ string handle_changePass(vector<string> tokens)
  */
 string handle_create(vector<string> tokens)
 {
-    int file_size;
     string file_content, response, msg, status, reply_command, eid, date;
 
-    if (tokens.size() != 9 || !check_size_uid(tokens[1]) ||
-        !check_size_password(tokens[2]) || !check_only_digits(tokens[1]) ||
-        !check_only_alphanumerical(tokens[2]) ||
-        !check_size_event_name(tokens[3]) || !check_only_alphanumerical(tokens[3]) ||
-        !check_only_digits(tokens[6]) || stoi(tokens[6]) < 10 || stoi(tokens[6]) > 99 ||
-        !check_size_file_name(tokens[7]) || !check_file_name(tokens[7]) ||
-        !check_hour(tokens[5]) || !check_date(tokens[4]) ||
-        !check_is_future_time(tokens[5], tokens[4]) ||
-        !check_only_digits(tokens[8]) || stoi(tokens[8]) > MAX_FILE_SIZE ||
-        tokens[9].size() != stoi(tokens[8]))
+    if (tokens.size() != 10)
     {
         msg = "RCE ERR\n";
         return msg;
     }
+
     date = tokens[4] + ' ' + tokens[5];
+
+    if (!check_size_uid(tokens[1]) ||
+        !check_size_password(tokens[2]) || !check_only_digits(tokens[1]) ||
+        !check_only_alphanumerical(tokens[2]) ||
+        !check_size_event_name(tokens[3]) || !check_only_alphanumerical(tokens[3]) ||
+        !check_only_digits(tokens[6]) || stoi(tokens[6]) < 10 || stoi(tokens[6]) > 999 ||
+        !check_size_file_name(tokens[7]) || !check_file_name(tokens[7]) ||
+        !check_hour(tokens[5]) || !check_date(tokens[4]) ||
+        !check_future_date(date) ||
+        !check_only_digits(tokens[8]) || !check_size_file(stoi(tokens[8])) ||
+        tokens[9].size() != stoul(tokens[8]))
+    {
+        msg = "RCE ERR\n";
+        return msg;
+    }
+
     switch (check_create_event(tokens[1], tokens[2], tokens[3],
                                date, tokens[6], tokens[7], tokens[8], tokens[9], eid))
     {
     case 0:
     {
-        msg = "RCE OK" + eid + "\n";
+        msg = "RCE OK " + eid + "\n";
         return msg;
     }
     case 1:
@@ -237,6 +225,7 @@ string handle_create(vector<string> tokens)
         return msg;
     }
     }
+    return "ERR\n";
 }
 
 string handle_close_event(vector<string> tokens)
@@ -292,6 +281,7 @@ string handle_close_event(vector<string> tokens)
         return msg;
     }
     }
+    return "ERR\n";
 }
 
 string handle_myevents(vector<string> tokens)
@@ -306,27 +296,28 @@ string handle_myevents(vector<string> tokens)
     }
     switch (check_myevents(tokens[1], tokens[2], events))
     {
-    case 0:
+    case OK:
     {
         msg = "RME OK" + events + "\n";
         return msg;
     }
-    case 1:
+    case NOK:
     {
         msg = "RME NOK\n";
         return msg;
     }
-    case 2:
+    case NLG:
     {
         msg = "RME NLG\n";
         return msg;
     }
-    default:
+    case WRP:
     {
         msg = "RME WRP\n";
         return msg;
     }
     }
+    return "ERR\n";
 }
 
 string handle_list(vector<string> tokens)
@@ -339,17 +330,18 @@ string handle_list(vector<string> tokens)
     }
     switch (check_list(events))
     {
-    case 0:
+    case OK:
     {
         msg = "RLS OK" + events + "\n";
         return msg;
     }
-    default:
+    case NOK:
     {
         msg = "RLS NOK\n";
         return msg;
     }
     }
+    return "ERR\n";
 }
 
 string handle_show(vector<string> tokens)
@@ -364,17 +356,18 @@ string handle_show(vector<string> tokens)
 
     switch (check_show(tokens[1], event))
     {
-    case 0:
+    case OK:
     {
-        msg = "RSE OK" + event + "\n";
+        msg = "RSE OK " + event + "\n";
         return msg;
     }
-    default:
+    case NOK:
     {
         msg = "RSE NOK\n";
         return msg;
     }
     }
+    return "ERR\n";
 }
 
 string handle_reserve(vector<string> tokens)
@@ -383,7 +376,7 @@ string handle_reserve(vector<string> tokens)
     vector<string> divided_response;
     string remaining_seats;
     int case_rej;
-    if (tokens.size() != 3 || !check_size_uid(tokens[1]) ||
+    if (tokens.size() != 5 || !check_size_uid(tokens[1]) ||
         !check_size_password(tokens[2]) || !check_only_digits(tokens[1]) ||
         !check_only_alphanumerical(tokens[2]) || !check_size_eid(tokens[3]) ||
         !check_only_digits(tokens[3]) || !check_only_digits(tokens[4]) ||
@@ -416,7 +409,7 @@ string handle_reserve(vector<string> tokens)
     }
     case 4:
     {
-        msg = "RRI REJ" + to_string(case_rej) + "\n";
+        msg = "RRI REJ " + to_string(case_rej) + "\n";
         return msg;
     }
     case 5:
@@ -435,11 +428,11 @@ string handle_reserve(vector<string> tokens)
         return msg;
     }
     }
+    return "ERR\n";
 }
 
 string handle_myreservations(vector<string> tokens)
 {
-    size_t response_size;
     string response, msg, status, reply_command, myr;
     vector<string> divided_response;
     if (tokens.size() != 3 || !check_size_uid(tokens[1]) ||
@@ -473,4 +466,5 @@ string handle_myreservations(vector<string> tokens)
         return msg;
     }
     }
+    return "ERR\n";
 }

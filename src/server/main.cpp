@@ -18,19 +18,19 @@
 #include <errno.h>
 #include <signal.h>
 
-#include <protocol.hpp>
+#include <protocol_server.hpp>
+#include <database.hpp>
 #include <constants.hpp>
+#include <server.hpp>
 
 char port[MAX_STRING];
 bool verbose = false;
 
-// tcp_message_complete -> verifica se mensagem tcp terminou de ser escrita (CREATE para com tamanho de ficheiro, resto usa '\n')
-// handle_request -> switch case
-
 bool tcp_message_complete(string msg)
 {
     // Check if it's not a create request
-    if (msg.rfind("CRE ", 0) != 0) {
+    if (msg.rfind("CRE ", 0) != 0)
+    {
         return msg.find('\n') != string::npos;
     }
 
@@ -39,18 +39,19 @@ bool tcp_message_complete(string msg)
     {
         istringstream iss(msg);
         string tag, userID, password, name, event_date, event_hour,
-               attendance_size, file_name;
+            attendance_size, file_name;
         size_t file_size;
 
         // Check if header was fully sent
-        if (!(iss >> tag >> userID >> password >> name >> event_date >> 
-            event_hour >> attendance_size >> file_name >> file_size))
+        if (!(iss >> tag >> userID >> password >> name >> event_date >>
+              event_hour >> attendance_size >> file_name >> file_size))
         {
             return false;
         }
 
         streampos header_end = iss.tellg();
-        if (header_end == -1) {
+        if (header_end == -1)
+        {
             return false;
         }
 
@@ -58,22 +59,21 @@ bool tcp_message_complete(string msg)
         size_t bytes_available = msg.size() - (size_t)(header_end);
         return bytes_available >= file_size;
     }
+    return false;
 }
 
 int main(int argc, char **argv)
 {
-    
-    bool exit_program = false;
     string input, command;
     vector<string> tokens;
     map<int, string> tcp_buffers;
 
     // No arguments, use default values for port
     if (argc == 1)
-    { 
-        strcpy(port, "58000");
+    {
+        strcpy(port, PORT);
     }
-    // Use given port and activate verbose, if needed
+    // Use given port and activate verbose, if they exist
     else if (argc == 2 && !strcmp(argv[1], "-v"))
     {
         verbose = true;
@@ -87,7 +87,7 @@ int main(int argc, char **argv)
         strcpy(port, argv[2]);
         verbose = true;
     }
-    else 
+    else
     {
         cout << "Incorrect number of arguments.\nUsage: ./server [-p ESport] [-v]\n\n";
         exit(1);
@@ -96,16 +96,16 @@ int main(int argc, char **argv)
     fd_set inputs, testfds;
     struct timeval timeout;
 
-    int i, out_fds, n, errcode, n_udp, n_tcp;
+    int i, out_fds, errcode, n_udp, n_tcp;
 
     char buffer[MAX_STRING];
 
     struct addrinfo udp_hints, *udp_res, tcp_hints, *tcp_res;
-    struct sockaddr_in udp_useraddr, tcp_useraddr;
+    struct sockaddr_in udp_useraddr; // tcp_useraddr;
     socklen_t addrlen;
     int udp_fd, tcp_fd, newfd;
 
-    char host[NI_MAXHOST], service[NI_MAXSERV];
+    // char host[NI_MAXHOST], service[NI_MAXSERV];
 
     signal(SIGPIPE, SIG_IGN);
 
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
     memset(&udp_hints, 0, sizeof(udp_hints));
     udp_hints.ai_family = AF_INET;
     udp_hints.ai_socktype = SOCK_DGRAM;
-    udp_hints.ai_flags = AI_PASSIVE|AI_NUMERICSERV;
+    udp_hints.ai_flags = AI_PASSIVE | AI_NUMERICSERV;
 
     if ((errcode = getaddrinfo(NULL, port, &udp_hints, &udp_res)) != 0)
         exit(1);
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
     memset(&tcp_hints, 0, sizeof(tcp_hints));
     tcp_hints.ai_family = AF_INET;
     tcp_hints.ai_socktype = SOCK_STREAM;
-    tcp_hints.ai_flags = AI_PASSIVE|AI_NUMERICSERV;
+    tcp_hints.ai_flags = AI_PASSIVE | AI_NUMERICSERV;
 
     if ((errcode = getaddrinfo(NULL, port, &tcp_hints, &tcp_res)) != 0)
         exit(1);
@@ -148,127 +148,134 @@ int main(int argc, char **argv)
         cout << "Bind error TCP server\n";
         exit(1);
     }
-    if (listen(tcp_fd, SOMAXCONN) == -1) 
+    if (listen(tcp_fd, SOMAXCONN) == -1)
     {
         exit(1);
     }
 
-    if(tcp_res != NULL)
+    if (tcp_res != NULL)
         freeaddrinfo(tcp_res);
 
-    // Set input, UDP and TCP channel 
-    FD_ZERO(&inputs); 
-    FD_SET(0, &inputs); 
-    FD_SET(udp_fd, &inputs); 
-    FD_SET(tcp_fd, &inputs); 
+    // Set input, UDP and TCP channel
+    FD_ZERO(&inputs);
+    FD_SET(0, &inputs);
+    FD_SET(udp_fd, &inputs);
+    FD_SET(tcp_fd, &inputs);
 
     int maxfd = udp_fd;
-    if (tcp_fd > maxfd) maxfd = tcp_fd;
+    if (tcp_fd > maxfd)
+        maxfd = tcp_fd;
 
-    while(1)
+    create_data_base();
+
+    while (1)
     {
-        testfds = inputs; 
+        testfds = inputs;
         memset((void *)&timeout, 0, sizeof(timeout));
-        timeout.tv_sec=10;
+        timeout.tv_sec = 10;
 
-        out_fds = select(maxfd + 1, &testfds, (fd_set *)NULL, (fd_set *)NULL, (struct timeval *)&timeout);
-        switch(out_fds)
+        out_fds = select(
+            maxfd + 1, &testfds, (fd_set *)NULL,
+            (fd_set *)NULL, (struct timeval *)&timeout);
+        switch (out_fds)
         {
-            case 0:
-                break;
-            case -1:
-                exit(1);
-            default:
-                // Keyboard
-                if(FD_ISSET(0, &testfds))
+        case 0:
+            break;
+        case -1:
+            exit(1);
+        default:
+            // Keyboard
+            if (FD_ISSET(0, &testfds))
+            {
+                if (!getline(cin, input))
                 {
-                    if (!getline(cin, input)) 
-                    {
-                        FD_CLR(0, &inputs);
-                    }
-                    // string response = handle_request(input); -> envia para switch case, que depois envia para funcao especifica
-                    cout << input + '\n';
+                    FD_CLR(0, &inputs);
                 }
-                // UDP socket
-                if(FD_ISSET(udp_fd, &testfds))
+                string response = handle_request(input);
+                cout << response;
+            }
+            // UDP socket
+            if (FD_ISSET(udp_fd, &testfds))
+            {
+                addrlen = sizeof(udp_useraddr);
+                memset(buffer, 0, sizeof(buffer));
+                n_udp = recvfrom(udp_fd, buffer, MAX_STRING, 0, (struct sockaddr *)&udp_useraddr, &addrlen);
+                if (n_udp == -1)
                 {
-                    addrlen = sizeof(udp_useraddr);
+                    cout << "Error receiving UDP client message.";
+                }
+                string udp_client_msg(buffer, n_udp);
+                cout << udp_client_msg;
+                string response = handle_request(udp_client_msg);
+                n_udp = sendto(udp_fd, response.c_str(), response.length(), 0, (struct sockaddr *)&udp_useraddr, addrlen);
+                if (n_udp == -1)
+                {
+                    cout << "Error sending message to UDP client.";
+                }
+                cout << response;
+            }
+            // TCP listening socket
+            if (FD_ISSET(tcp_fd, &testfds))
+            {
+                newfd = accept(tcp_fd, NULL, NULL);
+                if (newfd != -1)
+                {
+                    if (newfd < FD_SETSIZE)
+                    {
+                        FD_SET(newfd, &inputs);
+                        if (newfd > maxfd)
+                            maxfd = newfd;
+                    }
+                    else
+                    {
+                        close(newfd);
+                    }
+                }
+            }
+            // TCP client sockets
+            for (i = 0; i <= maxfd; i++)
+            {
+                if (i != tcp_fd && i != udp_fd && i != 0 && FD_ISSET(i, &testfds))
+                {
                     memset(buffer, 0, sizeof(buffer));
-                    n_udp = recvfrom(udp_fd, buffer, MAX_STRING, 0, (struct sockaddr *)&udp_useraddr, &addrlen);
-                    if (n_udp == -1)
+                    n_tcp = read(i, buffer, sizeof(buffer));
+                    if (n_tcp <= 0)
                     {
-                        cout << "Error receiving UDP client message.";
+                        close(i);
+                        FD_CLR(i, &inputs);
+                        tcp_buffers.erase(i);
+                        continue;
                     }
-                    string udp_client_msg(buffer, n_udp);
-                    string response;
-                    // string response = handle_request(udp_client_msg); -> envia para switch case, que depois envia para funcao especifica
-                    
-                    n_udp = sendto(udp_fd, response.c_str(), response.length(), 0, (struct sockaddr *)&udp_useraddr, addrlen);
-                    if (n_udp == -1)
-                    {
-                        cout << "Error sending message to UDP client.";
-                    }
-                }
-                // TCP listening socket
-                if (FD_ISSET(tcp_fd, &testfds))
-                {   
-                    newfd = accept(tcp_fd, NULL, NULL);
-                    if (newfd != -1) 
-                    {
-                        if (newfd < FD_SETSIZE) 
-                        {
-                            FD_SET(newfd, &inputs);
-                            if (newfd > maxfd) maxfd = newfd;
-                        } else {
-                            close(newfd);
-                        }
-                    }
-                }
-                // TCP client sockets
-                for (i = 0; i <= maxfd; i++) 
-                {
-                    if (i != tcp_fd && i != udp_fd && i != 0 && FD_ISSET(i, &testfds)) 
-                    {
-                        memset(buffer, 0, sizeof(buffer));
-                        n_tcp = read(i, buffer, sizeof(buffer));
-                        if (n_tcp <= 0) 
-                        {
-                            close(i);
-                            FD_CLR(i, &inputs);
-                            tcp_buffers.erase(i);
-                            continue;
-                        }
 
-                        tcp_buffers[i].append(buffer, n_tcp);
+                    tcp_buffers[i].append(buffer, n_tcp);
 
-                        if (tcp_message_complete(tcp_buffers[i])) 
+                    if (tcp_message_complete(tcp_buffers[i]))
+                    {
+                        cout << tcp_buffers[i];
+                        string response = handle_request(tcp_buffers[i]);
+                        size_t sent_bytes = 0;
+                        size_t response_len = response.length();
+
+                        while (sent_bytes < response_len)
                         {
-                            string response;
-                            //string response = handle_request(tcp_buffers[i]);
-                            size_t sent_bytes = 0;
-                            size_t response_len = response.length();
-
-                            while (sent_bytes < response_len)
+                            n_tcp = write(i, response.c_str() + sent_bytes, response_len - sent_bytes);
+                            if (n_tcp <= 0)
                             {
-                                n_tcp = write(i, response.c_str() + sent_bytes, response_len - sent_bytes);
-                                if (n_tcp <= 0) 
-                                {
-                                    FD_CLR(i, &inputs);
-                                    tcp_buffers.erase(i);
-                                    break;
-                                }
-                                sent_bytes += n_tcp;
+                                FD_CLR(i, &inputs);
+                                tcp_buffers.erase(i);
+                                break;
                             }
-                            tcp_buffers[i].clear();
+                            sent_bytes += n_tcp;
                         }
-                    }
-                    if (i == maxfd) 
-                    {
-                        while (maxfd > 0 && !FD_ISSET(maxfd, &inputs))
-                            maxfd--;
+                        tcp_buffers[i].clear();
                     }
                 }
+                if (i == maxfd)
+                {
+                    while (maxfd > 0 && !FD_ISSET(maxfd, &inputs))
+                        maxfd--;
+                }
+            }
         }
     }
 }
-

@@ -70,11 +70,11 @@ string resolve_state(string state)
     return "invalid state";
 }
 
-Command_Options resolveServerRequest(string command)
+Command_Options resolve_server_request(string command)
 {
     if (command == "LIN")
         return login;
-    if (command == "")
+    if (command == "CPS")
         return changePass;
     if (command == "UNR")
         return unregister;
@@ -119,28 +119,12 @@ size_t split_nth_space(string &s, int n)
     return pos;
 }
 
-vector<string> extract_file_data(string &s, int create_flag)
+vector<string> extract_file_data(string &s)
 {
     vector<string> tokens;
     size_t first_split = -1;
     size_t second_split = -1;
 
-    // If given string corresponds to a Create command
-    if (create_flag)
-    {
-        first_split = split_nth_space(s, 3);
-        second_split = split_nth_space(s, 9);
-
-        string user_data = s.substr(0, first_split);
-        string file_data = s.substr(first_split + 1, second_split - first_split - 1);
-        string file_content = s.substr(second_split + 1);
-        tokens.push_back(user_data);
-        tokens.push_back(file_data);
-        tokens.push_back(file_content);
-
-        return tokens;
-    }
-    // If given string corresponds to a Show response
     first_split = split_nth_space(s, 2);
     second_split = split_nth_space(s, 10);
 
@@ -150,6 +134,35 @@ vector<string> extract_file_data(string &s, int create_flag)
     tokens.push_back(response_data);
     tokens.push_back(file_data);
     tokens.push_back(file_content);
+
+    return tokens;
+}
+
+vector<string> divide_create_request(string &s)
+{
+    istringstream stream(s);
+    vector<string> tokens;
+    string token;
+    char delimiter = ' ';
+    int i = 1, max = 10;
+
+    while (i < max)
+    {
+        if (!getline(stream, token, delimiter))
+        {
+            break; // Create message doesn't have all requirements
+        }
+        tokens.push_back(token);
+        i++;
+    }
+
+    // Append file content
+    ostringstream oss;
+    oss << stream.rdbuf();
+
+    string rest = oss.str();
+    if (!rest.empty())
+        tokens.push_back(rest);
 
     return tokens;
 }

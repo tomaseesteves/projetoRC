@@ -22,7 +22,25 @@ enum Command_Options
     invalid_command
 };
 
-Command_Options resolveServerRequest(string command);
+enum Status_Options
+{
+    OK,
+    NOK,
+    REG,
+    UNR,
+    WRP,
+    NLG,
+    EOW,
+    SLD,
+    PST,
+    CLO,
+    CLS,
+    ACC,
+    REJ,
+    NID
+};
+
+Command_Options resolve_server_request(string command);
 
 /// Identify what command the user has just sent.
 /// @param command
@@ -52,8 +70,12 @@ size_t split_nth_space(string &s, int n);
 
 /// Separates file data from its content contained within a string
 /// @param s
-/// @param command_flag
 /// @return tokens
-vector<string> extract_file_data(string &s, int command_flag);
+vector<string> extract_file_data(string &s);
+
+/// Separates create message arguments from the file content
+/// @param s
+/// @return vector
+vector<string> divide_create_request(string &s);
 
 #endif
